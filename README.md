@@ -118,7 +118,6 @@ Carpooling Backend corriendo :D
 
 También se puede abrir `http://localhost:3000/api/health` directamente en el navegador.
 
-**Nota:** el endpoint anterior es una propuesta de health check y debe implementarse antes de utilizarlo. Si todavía no existe, se puede comprobar el servidor utilizando cualquier endpoint que ya esté implementado.
 
 ### 4.2. Comandos disponibles
 
