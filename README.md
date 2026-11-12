@@ -21,8 +21,8 @@ Este documento explica cómo configurar y ejecutar el proyecto, cómo está orga
 
 Antes de ejecutar el proyecto, es necesario tener instalado:
 
-- **Node.js:** utilizar la versión compatible con el proyecto.
-- **npm:** gestor de paquetes de Node.js.
+- **Node.js:** utilizar la versión compatible con el proyecto (26.13.0).
+- **npm:** gestor de paquetes de Node.js (se instala con Node.js).
 - **Git:** para clonar el repositorio y trabajar con branches.
 - **Acceso a Supabase:** credenciales y configuración necesarias para conectarse a la base de datos.
 
@@ -34,7 +34,7 @@ npm --version
 git --version
 ```
 
-Se recomienda utilizar la misma versión de Node.js entre todos los integrantes para evitar diferencias de comportamiento.
+Se recomienda utilizar la misma versión de Node.js (26.13.0) entre todos los integrantes para evitar diferencias de comportamiento.
 
 ## 3. Instalación y configuración
 
@@ -43,8 +43,8 @@ Se recomienda utilizar la misma versión de Node.js entre todos los integrantes 
 Clonar el repositorio y acceder a la carpeta del proyecto:
 
 ```bash
-git clone <REPOSITORY_URL>
-cd <PROJECT_DIRECTORY>
+git clone https://github.com/XandersEG/Carpooling_CR_Backend
+cd Carpooling_CR_Backend
 ```
 
 ### 3.2. Instalar dependencias
