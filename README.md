@@ -80,7 +80,7 @@ Solicitar al equipo las credenciales y variables de entorno correspondientes.
 
 ## 4. Ejecutar el backend
 
-Para iniciar el servidor en modo desarrollo:
+Para iniciar el servidor en modo desarrollo, debe de ejecutar el siguiente comando y aceptar el permiso solicitado:
 
 ```bash
 npm run start:dev
@@ -98,10 +98,10 @@ La API utiliza el prefijo global `/api`, por lo que los endpoints estarán organ
 
 ### 4.1. ¿Cómo comprobar que el backend está funcionando?
 
-Cuando el servidor inicia correctamente, la terminal mostrará un mensaje similar a:
+Cuando el servidor inicia correctamente, la última línea de la terminal mostrará un mensaje similar a:
 
 ```text
-[Nest] LOG [NestApplication] Nest application successfully started
+[Nest] ... LOG [NestApplication] Nest application successfully started
 ```
 
 También se puede comprobar realizando una solicitud HTTP al endpoint de health check:
@@ -117,24 +117,6 @@ Carpooling Backend corriendo :D
 ```
 
 También se puede abrir `http://localhost:3000/api/health` directamente en el navegador.
-
-
-### 4.2. Comandos disponibles
-
-Los siguientes son comandos habituales de NestJS. Su disponibilidad depende de los scripts definidos en `package.json`.
-
-| Comando | Descripción |
-|---|---|
-| `npm run start` | Iniciar la aplicación. |
-| `npm run start:dev` | Iniciar en modo desarrollo con watch. |
-| `npm run start:debug` | Iniciar en modo debug con watch. |
-| `npm run build` | Compilar el proyecto. |
-| `npm run start:prod` | Ejecutar la versión compilada. |
-| `npm run test` | Ejecutar pruebas unitarias. |
-| `npm run test:e2e` | Ejecutar pruebas end-to-end. |
-| `npm run lint` | Ejecutar ESLint, si está configurado. |
-
----
 
 ## 5. Arquitectura de NestJS
 
