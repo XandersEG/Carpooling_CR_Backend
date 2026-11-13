@@ -67,47 +67,16 @@ Ejemplo ilustrativo:
 
 ```env
 PORT=3000
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+DATABASE_URL=your_database_connection_string
 ```
 
-El URL que está puesto es el que se usa por defecto cuando la base de datos de Supabase de forma local, pero cuando
-se necesite la conexión de la base en la nube se tendrá que solicitar al equipo las credenciales y variables de entorno 
-correspondientes.
+Solicitar al equipo las credenciales y variables de entorno correspondientes.
 
 **Importante:**
 - No compartir credenciales directamente en el código.
 - Nunca subir el archivo `.env` al repositorio.
 - Verificar que `.env` esté incluido en `.gitignore`.
 - No utilizar credenciales de producción para realizar pruebas locales sin autorización.
-
-### 3.4. Setup para crear base local de Supabase y tener los esquemas en la base
-
-Para evitar problemas con tener que usar una base de datos en la nube, se pensó crear contenedores para que una base de datos
-de Supabase se instale en la máquina de uno.
-
-1. Estando en la raíz del directorio principal, ejecutar el comando en terminal:
-```
-npx supabase init
-```
-Esto es para que se cree una carpeta llamada supabase. Esto es para que se guarde la configuración y metadata de la base de datos
-
-2. Para crear la base de datos, ejecutar el comando en terminal:
-```
-npx supabase start
-```
-Esto es para que se genere todas las imágenes, contenedores y volúmenes de la base de datos local 
-
-3. Una vez hecho la instalación de la base, crear un archivo .env con esta definición:
-```
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
-```
-Este es es URL por defecto que va a tener la base de datos local
-
-4. Para subir el esquema para la base, ejecutar los comandos en este orden en teminal:
-```
-npx drizzle-kit generate
-npx drizzle-kit push
-```
 
 ## 4. Ejecutar el backend
 
@@ -498,6 +467,49 @@ Cada archivo puede contener la definición de las tablas relacionadas con una fu
 La configuración de migraciones debe mantenerse sincronizada con los cambios en los schemas.
 
 **Importante:** antes de modificar o ejecutar migraciones sobre una base de datos compartida, coordinar los cambios con el equipo.
+
+### 9.3. Setup para crear base local de Supabase
+
+Para evitar problemas con tener que usar una base de datos en la nube, se pensó crear contenedores para que una base de datos
+de Supabase se instale en la máquina de uno.
+
+**Requisitos previos**
+1. Tener instalado Docker o Docker Desktop en la máquina de uno
+2. Tener instalado Node.js en la máquina de uno
+
+**Pasos para instalación**
+1. Correr Docker o Docker Desktop
+2. Clonar este repositorio
+3. Dirigirse al directorio raíz del repositorio
+4. Ejecutar el comando en terminal:
+```
+npm install
+```
+Esto es para que se instalen todas las dependencias que están en archivo de package.json
+
+5. Para ajustar el directorio, ejecutar el comando en terminal:
+```
+npx supabase init
+```
+Esto es para que se cree una carpeta llamada supabase. Esto es para que se guarde la configuración y metadata de la base de datos
+
+6. Para crear la base de datos, ejecutar el comando en terminal:
+```
+npx supabase start
+```
+Esto es para que se genere todas las imágenes, contenedores y volúmenes de la base de datos local 
+
+7. Una vez hecho la instalación de la base, crear un archivo .env con esta definición:
+```
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+```
+Este es es URL por defecto que va a tener la base de datos local
+
+8. Para subir el esquema para la base, ejecutar los comandos en este orden en teminal:
+```
+npx drizzle-kit generate
+npx drizzle-kit push
+```
 
 ## 10. Convenciones de desarrollo
 
