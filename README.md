@@ -16,6 +16,7 @@ Este documento explica cómo configurar y ejecutar el proyecto, cómo está orga
 | [PostgreSQL](https://www.postgresql.org/) | Sistema de gestión de base de datos relacional. |
 | [Supabase](https://supabase.com/) | Plataforma que proporciona la infraestructura de PostgreSQL y servicios asociados. |
 | [Drizzle ORM](https://orm.drizzle.team/) | ORM utilizado para interactuar con PostgreSQL desde TypeScript. |
+| [Docker Desktop](https://docs.docker.com/desktop/) | Usado para crear contenedores y entornos de trabajo. Se va a usar para tener la base de datos local
 
 ## 2. Requisitos previos
 
@@ -25,6 +26,7 @@ Antes de ejecutar el proyecto, es necesario tener instalado:
 - **npm:** gestor de paquetes de Node.js (se instala con Node.js).
 - **Git:** para clonar el repositorio y trabajar con branches.
 - **Acceso a Supabase:** credenciales y configuración necesarias para conectarse a la base de datos.
+- **Docker Desktop:** se puede usar Docker simple, pero puede haber diferencias en la instalación de la base de datos local (Consultar con Javier Lee) 
 
 Para comprobar que Node.js, npm y Git están instalados:
 
@@ -85,25 +87,27 @@ correspondientes.
 Para evitar problemas con tener que usar una base de datos en la nube, se pensó crear contenedores para que una base de datos
 de Supabase se instale en la máquina de uno.
 
-1. Estando en la raíz del directorio principal, ejecutar el comando en terminal:
+1. Tener Docker Desktop abierto
+
+2. Estando en la raíz del directorio principal, ejecutar el comando en terminal:
 ```
 npx supabase init
 ```
 Esto es para que se cree una carpeta llamada supabase. Esto es para que se guarde la configuración y metadata de la base de datos
 
-2. Para crear la base de datos, ejecutar el comando en terminal:
+3. Para crear la base de datos, ejecutar el comando en terminal:
 ```
 npx supabase start
 ```
 Esto es para que se genere todas las imágenes, contenedores y volúmenes de la base de datos local 
 
-3. Una vez hecho la instalación de la base, crear un archivo .env con esta definición:
+4. Una vez hecho la instalación de la base, crear un archivo .env con esta definición:
 ```
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 ```
 Este es es URL por defecto que va a tener la base de datos local
 
-4. Para subir el esquema para la base, ejecutar los comandos en este orden en teminal:
+5. Para subir el esquema para la base, ejecutar los comandos en este orden en teminal:
 ```
 npx drizzle-kit generate
 npx drizzle-kit push
