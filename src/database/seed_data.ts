@@ -242,10 +242,10 @@ export async function insertarReglasYTarifasPorDefecto() {
     return db
         .insert(catalogoReglasYTarifas)
         .values([
-            {nombre: 'Tarifa máxima por kilómetro', valor: 150, unidad: 'colones/km', descripcion: 'Monto máximo que el conductor puede cobrar por km'},
-            {nombre: 'Aporte máximo por viaje', valor: 3000, unidad: 'colones', descripcion: 'Tope de cobro por pasajero en un mismo viaje'},
-            {nombre: 'Cancelación sin penalización', valor: 30, unidad: 'minutos', descripcion: 'Tiempo mínimo de aviso para cancelar un viaje'},
-            {nombre: 'Tiempo de espera del conductor', valor: 5, unidad: 'minutos', descripcion: 'Espera máxima en el punto de encuentro'},
+            {nombre: 'Tarifa máxima por kilómetro', valor: '150', unidad: 'colones/km', descripcion: 'Monto máximo que el conductor puede cobrar por km'},
+            {nombre: 'Aporte máximo por viaje', valor: '3000', unidad: 'colones', descripcion: 'Tope de cobro por pasajero en un mismo viaje'},
+            {nombre: 'Cancelación sin penalización', valor: '30', unidad: 'minutos', descripcion: 'Tiempo mínimo de aviso para cancelar un viaje'},
+            {nombre: 'Tiempo de espera del conductor', valor: '5', unidad: 'minutos', descripcion: 'Espera máxima en el punto de encuentro'},
         ])
         .returning();
 }
