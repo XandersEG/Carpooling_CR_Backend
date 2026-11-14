@@ -12,6 +12,7 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { float } from 'drizzle-orm/singlestore-core';
 
 /* -------------------------------------------------------------------------- */
 /*  CATÁLOGOS                                                                 */
@@ -19,14 +20,14 @@ import {
 
 export const catalogoMetodoDePagoTable = pgTable('catalogoMetodoDePago', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  metodoPago: varchar({ length: 100 }).notNull(),
+  nombre: varchar({ length: 100 }).notNull(),
   descripcion: varchar({ length: 255 }),
   estado:boolean().notNull()
 });
 
 export const catalogoTiposDeVehiculo = pgTable('catalogoTiposDeVehiculo', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  tipoVehiculo: varchar({ length: 100 }).notNull(),
+  nombre: varchar({ length: 100 }).notNull(),
   capacidadMaxima: integer().notNull().default(4),
   descripcion: varchar({ length: 255 }),
   estado:boolean().notNull()
@@ -34,7 +35,7 @@ export const catalogoTiposDeVehiculo = pgTable('catalogoTiposDeVehiculo', {
 
 export const catalogoRangosDeEdad = pgTable('catalogoRangosDeEdad', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  rangoEdad: varchar({ length: 100 }).notNull(),
+  nombre: varchar({ length: 100 }).notNull(),
   edadMinima: integer().notNull().default(18),
   edadMaxima: integer().notNull().default(32),
   descripcion: varchar({ length: 255 }),
@@ -43,15 +44,17 @@ export const catalogoRangosDeEdad = pgTable('catalogoRangosDeEdad', {
 
 export const catalogoOpcionesDeGenero = pgTable('catalogoOpcionesDeGenero', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  opcion: varchar({ length: 255 }),
+  nombre: varchar({ length: 255 }),
   estado:boolean().notNull()
 });
 
 export const catalogoReglasYTarifas = pgTable('catalogoReglasYTarifas', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  regla: varchar({ length: 255 }),
-  valor: varchar({ length: 255 }),
-  descripcion: varchar({ length: 255 })
+  nombre: varchar({ length: 255 }),
+  valor: decimal('valor', { precision: 9, scale: 6 }),
+  unidad: varchar({ length: 255 }),
+  descripcion: varchar({ length: 255 }),
+  estado:boolean().notNull()
 });
 
 /* -------------------------------------------------------------------------- */
