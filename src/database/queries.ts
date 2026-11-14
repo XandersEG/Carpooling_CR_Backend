@@ -16,15 +16,18 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 import {
   administradorTable,
-  catalogoTable,
-  catalogoValorTable,
+  catalogoMetodoDePagoTable,
+  catalogoTiposDeVehiculo,
+  catalogoRangosDeEdad,
+  catalogoOpcionesDeGenero,
+  catalogoReglasYTarifas,
   institucionTable,
   solicitudViajeTable,
   tokenRefrescoTable,
   usuarioTable,
   vehiculoTable,
   viajeTable,
-} from './schemas';
+} from './schemas.js';
 
 export const db = drizzle(process.env.DATABASE_URL!);
 
