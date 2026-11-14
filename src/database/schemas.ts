@@ -12,34 +12,50 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { float } from 'drizzle-orm/singlestore-core';
 
 /* -------------------------------------------------------------------------- */
 /*  CATÁLOGOS                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const catalogoTable = pgTable('catalogo', {
+export const catalogoMetodoDePagoTable = pgTable('catalogoMetodoDePago', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  codigo: varchar({ length: 50 }).notNull().unique(),
   nombre: varchar({ length: 100 }).notNull(),
   descripcion: varchar({ length: 255 }),
+  estado:boolean().notNull()
 });
 
-export const catalogoValorTable = pgTable(
-  'catalogo_valor',
-  {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    catalogoId: integer('catalogo_id')
-      .notNull()
-      .references(() => catalogoTable.id),
-    codigo: varchar({ length: 50 }).notNull(),
-    etiqueta: varchar({ length: 100 }).notNull(),
-    edadMin: integer('edad_min'),
-    edadMax: integer('edad_max'),
-    orden: integer().notNull().default(0),
-    activo: boolean().notNull().default(true),
-  },
-  (t) => [unique('catalogo_valor_catalogo_codigo_uk').on(t.catalogoId, t.codigo)],
-);
+export const catalogoTiposDeVehiculo = pgTable('catalogoTiposDeVehiculo', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar({ length: 100 }).notNull(),
+  capacidadMaxima: integer().notNull().default(4),
+  descripcion: varchar({ length: 255 }),
+  estado:boolean().notNull()
+});
+
+export const catalogoRangosDeEdad = pgTable('catalogoRangosDeEdad', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar({ length: 100 }).notNull(),
+  edadMinima: integer().notNull().default(18),
+  edadMaxima: integer().notNull().default(32),
+  descripcion: varchar({ length: 255 }),
+  estado:boolean().notNull()
+});
+
+export const catalogoOpcionesDeGenero = pgTable('catalogoOpcionesDeGenero', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar({ length: 255 }),
+  estado:boolean().notNull()
+});
+
+export const catalogoReglasYTarifas = pgTable('catalogoReglasYTarifas', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar({ length: 255 }),
+  valor: decimal('valor', { precision: 9, scale: 6 }),
+  unidad: varchar({ length: 255 }),
+  descripcion: varchar({ length: 255 }),
+  estado:boolean().notNull()
+});
 
 /* -------------------------------------------------------------------------- */
 /*  INSTITUCIÓN / USUARIOS / ADMINISTRADORES                                  */
@@ -64,7 +80,7 @@ export const usuarioTable = pgTable('usuario', {
     .references(() => institucionTable.id),
   generoId: integer('genero_id')
     .notNull()
-    .references(() => catalogoValorTable.id),
+    .references(() => catalogoOpcionesDeGenero.id),
   correoInstitucional: varchar('correo_institucional', { length: 255 })
     .notNull()
     .unique(),
@@ -162,10 +178,7 @@ export const viajeTable = pgTable(
       .references(() => vehiculoTable.id),
     metodoPagoId: integer('metodo_pago_id')
       .notNull()
-      .references(() => catalogoValorTable.id),
-    estadoId: integer('estado_id')
-      .notNull()
-      .references(() => catalogoValorTable.id),
+      .references(() => catalogoMetodoDePagoTable.id),
     origenNombre: varchar('origen_nombre', { length: 255 }).notNull(),
     origenLat: decimal('origen_lat', { precision: 9, scale: 6 }).notNull(),
     origenLng: decimal('origen_lng', { precision: 9, scale: 6 }).notNull(),
@@ -210,9 +223,6 @@ export const solicitudViajeTable = pgTable(
     pasajeroId: integer('pasajero_id')
       .notNull()
       .references(() => usuarioTable.id),
-    estadoId: integer('estado_id')
-      .notNull()
-      .references(() => catalogoValorTable.id),
     puntoRecogidaNombre: varchar('punto_recogida_nombre', { length: 255 }).notNull(),
     puntoRecogidaLat: decimal('punto_recogida_lat', { precision: 9, scale: 6 }).notNull(),
     puntoRecogidaLng: decimal('punto_recogida_lng', { precision: 9, scale: 6 }).notNull(),
