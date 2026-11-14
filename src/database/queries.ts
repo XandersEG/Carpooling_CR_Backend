@@ -48,9 +48,11 @@ export const db = drizzle(process.env.DATABASE_URL!);
 /*    fecha_inicio_real  != null          -> EN_CURSO                         */
 /*    ninguna de las anteriores           -> PROGRAMADO                       */
 /*                                                                            */
-/*  SOLICITUD (columna `respuesta`)                                           */
-/*    null                                -> PENDIENTE                        */
-/*    'ACEPTADA' | 'RECHAZADA' | 'CANCELADA'                                  */
+/*  SOLICITUD (columnas `fecha_respuesta` y `respuesta` boolean)              */
+/*    fecha_respuesta = null              -> PENDIENTE                        */
+/*    fecha_respuesta != null, respuesta = true   -> ACEPTADA                 */
+/*    fecha_respuesta != null, respuesta = false  -> RECHAZADA                */
+/*    Si el pasajero cancela, se elimina la fila de la solicitud.             */
 /* -------------------------------------------------------------------------- */
 
 export const ESTADO_VIAJE = {
@@ -61,15 +63,10 @@ export const ESTADO_VIAJE = {
 } as const;
 export type EstadoViaje = (typeof ESTADO_VIAJE)[keyof typeof ESTADO_VIAJE];
 
-export const RESPUESTA_SOLICITUD = {
-  ACEPTADA: 'ACEPTADA',
-  RECHAZADA: 'RECHAZADA',
-  CANCELADA: 'CANCELADA',
-} as const;
-
 export const ESTADO_SOLICITUD = {
   PENDIENTE: 'PENDIENTE',
-  ...RESPUESTA_SOLICITUD,
+  ACEPTADA: 'ACEPTADA',
+  RECHAZADA: 'RECHAZADA',
 } as const;
 export type EstadoSolicitud = (typeof ESTADO_SOLICITUD)[keyof typeof ESTADO_SOLICITUD];
 
@@ -87,7 +84,15 @@ const viajeProgramadoSql = sql`(${viajeTable.fechaInicioReal} IS NULL
   AND ${viajeTable.motivoCancelacion} IS NULL)`;
 
 /** Expresión SQL que calcula el estado de una solicitud. */
-const estadoSolicitudSql = sql<EstadoSolicitud>`COALESCE(${solicitudViajeTable.respuesta}, 'PENDIENTE')`;
+const estadoSolicitudSql = sql<EstadoSolicitud>`CASE
+  WHEN ${solicitudViajeTable.fechaRespuesta} IS NULL THEN 'PENDIENTE'
+  WHEN ${solicitudViajeTable.respuesta} THEN 'ACEPTADA'
+  ELSE 'RECHAZADA'
+END`;
+
+/** Condición SQL: el conductor ya respondió y aceptó la solicitud. */
+const solicitudAceptadaSql = sql`(${solicitudViajeTable.fechaRespuesta} IS NOT NULL
+  AND ${solicitudViajeTable.respuesta} = true)`;
 
 /* -------------------------------------------------------------------------- */
 /*  CATÁLOGOS                                                                 */
@@ -97,7 +102,7 @@ export async function listarMetodosPago(soloActivos = true) {
   return db
     .select()
     .from(catalogoMetodoDePagoTable)
-    .where(soloActivos ? eq(catalogoMetodoDePagoTable.estado, true) : undefined)
+    .where(soloActivos ? eq(catalogoMetodoDePagoTable.activo, true) : undefined)
     .orderBy(asc(catalogoMetodoDePagoTable.nombre));
 }
 
@@ -105,7 +110,7 @@ export async function listarTiposVehiculo(soloActivos = true) {
   return db
     .select()
     .from(catalogoTiposDeVehiculo)
-    .where(soloActivos ? eq(catalogoTiposDeVehiculo.estado, true) : undefined)
+    .where(soloActivos ? eq(catalogoTiposDeVehiculo.activo, true) : undefined)
     .orderBy(asc(catalogoTiposDeVehiculo.nombre));
 }
 
@@ -113,7 +118,7 @@ export async function listarRangosEdad(soloActivos = true) {
   return db
     .select()
     .from(catalogoRangosDeEdad)
-    .where(soloActivos ? eq(catalogoRangosDeEdad.estado, true) : undefined)
+    .where(soloActivos ? eq(catalogoRangosDeEdad.activo, true) : undefined)
     .orderBy(asc(catalogoRangosDeEdad.edadMinima));
 }
 
@@ -121,12 +126,16 @@ export async function listarOpcionesGenero(soloActivas = true) {
   return db
     .select()
     .from(catalogoOpcionesDeGenero)
-    .where(soloActivas ? eq(catalogoOpcionesDeGenero.estado, true) : undefined)
+    .where(soloActivas ? eq(catalogoOpcionesDeGenero.activo, true) : undefined)
     .orderBy(asc(catalogoOpcionesDeGenero.nombre));
 }
 
-export async function listarReglasYTarifas() {
-  return db.select().from(catalogoReglasYTarifas).orderBy(asc(catalogoReglasYTarifas.nombre));
+export async function listarReglasYTarifas(soloActivas = true) {
+  return db
+    .select()
+    .from(catalogoReglasYTarifas)
+    .where(soloActivas ? eq(catalogoReglasYTarifas.activo, true) : undefined)
+    .orderBy(asc(catalogoReglasYTarifas.nombre));
 }
 
 /** Devuelve el valor (texto) de una regla, ej. obtenerReglaTarifa('COMISION_APP'). */
@@ -162,14 +171,14 @@ export async function obtenerRangoEdadPorFechaNacimiento(fechaNacimiento: string
     .from(catalogoRangosDeEdad)
     .where(
       and(
-        eq(catalogoRangosDeEdad.estado, true),
+        eq(catalogoRangosDeEdad.activo, true),
         sql`${edad} BETWEEN ${catalogoRangosDeEdad.edadMinima} AND ${catalogoRangosDeEdad.edadMaxima}`,
       ),
     );
   return rango ?? null;
 }
 
-/** Activa o desactiva un valor de los catálogos que tienen columna `estado`. */
+/** Activa o desactiva un valor de los catálogos que tienen columna `activo`. */
 const CATALOGOS_CON_ESTADO = {
   metodoPago: catalogoMetodoDePagoTable,
   tipoVehiculo: catalogoTiposDeVehiculo,
@@ -180,31 +189,31 @@ const CATALOGOS_CON_ESTADO = {
 export async function cambiarEstadoCatalogo(
   catalogo: keyof typeof CATALOGOS_CON_ESTADO,
   id: number,
-  estado: boolean,
+  activo: boolean,
 ) {
   switch (catalogo) {
     case 'metodoPago':
       return db
         .update(catalogoMetodoDePagoTable)
-        .set({ estado })
+        .set({ activo })
         .where(eq(catalogoMetodoDePagoTable.id, id))
         .returning({ id: catalogoMetodoDePagoTable.id });
     case 'tipoVehiculo':
       return db
         .update(catalogoTiposDeVehiculo)
-        .set({ estado })
+        .set({ activo })
         .where(eq(catalogoTiposDeVehiculo.id, id))
         .returning({ id: catalogoTiposDeVehiculo.id });
     case 'rangoEdad':
       return db
         .update(catalogoRangosDeEdad)
-        .set({ estado })
+        .set({ activo })
         .where(eq(catalogoRangosDeEdad.id, id))
         .returning({ id: catalogoRangosDeEdad.id });
     case 'genero':
       return db
         .update(catalogoOpcionesDeGenero)
-        .set({ estado })
+        .set({ activo })
         .where(eq(catalogoOpcionesDeGenero.id, id))
         .returning({ id: catalogoOpcionesDeGenero.id });
   }
@@ -222,7 +231,7 @@ export async function buscarInstitucionPorDominio(dominio: string) {
     .where(
       and(
         eq(institucionTable.dominioCorreo, dominio.trim().toLowerCase()),
-        eq(institucionTable.activa, true),
+        eq(institucionTable.activo, true),
       ),
     );
   return institucion ?? null;
@@ -239,7 +248,7 @@ export async function listarInstituciones(soloActivas = true) {
   return db
     .select()
     .from(institucionTable)
-    .where(soloActivas ? eq(institucionTable.activa, true) : undefined)
+    .where(soloActivas ? eq(institucionTable.activo, true) : undefined)
     .orderBy(asc(institucionTable.nombre));
 }
 
@@ -251,7 +260,7 @@ export async function listarInstituciones(soloActivas = true) {
 export async function crearInstitucion(datos: {
   nombre: string;
   dominioCorreo: string;
-  activa?: boolean;
+  activo?: boolean;
 }) {
   const dominioCorreo = datos.dominioCorreo.trim().toLowerCase().replace(/^@/, '');
 
@@ -260,7 +269,7 @@ export async function crearInstitucion(datos: {
     .values({
       nombre: datos.nombre.trim(),
       dominioCorreo,
-      activa: datos.activa ?? true,
+      activo: datos.activo ?? true,
     })
     .onConflictDoNothing({ target: institucionTable.dominioCorreo })
     .returning();
@@ -289,12 +298,12 @@ export async function actualizarInstitucion(
   return institucion ?? null;
 }
 
-export async function cambiarEstadoInstitucion(institucionId: number, activa: boolean) {
+export async function cambiarEstadoInstitucion(institucionId: number, activo: boolean) {
   const [institucion] = await db
     .update(institucionTable)
-    .set({ activa })
+    .set({ activo })
     .where(eq(institucionTable.id, institucionId))
-    .returning({ id: institucionTable.id, activa: institucionTable.activa });
+    .returning({ id: institucionTable.id, activo: institucionTable.activo });
   return institucion ?? null;
 }
 
@@ -736,7 +745,7 @@ export async function crearViaje(datos: DatosNuevoViaje) {
       .where(
         and(
           eq(catalogoMetodoDePagoTable.id, datos.metodoPagoId),
-          eq(catalogoMetodoDePagoTable.estado, true),
+          eq(catalogoMetodoDePagoTable.activo, true),
         ),
       );
     if (!metodoPago) throw new Error('El método de pago no existe o está inactivo');
@@ -942,18 +951,7 @@ export async function cancelarViaje(viajeId: number, conductorId: number, motivo
 
     if (!viaje) throw new Error('El viaje no existe, no es tuyo o ya no está programado');
 
-    await tx
-      .update(solicitudViajeTable)
-      .set({ respuesta: RESPUESTA_SOLICITUD.CANCELADA, fechaRespuesta: new Date() })
-      .where(
-        and(
-          eq(solicitudViajeTable.viajeId, viajeId),
-          or(
-            isNull(solicitudViajeTable.respuesta),
-            eq(solicitudViajeTable.respuesta, RESPUESTA_SOLICITUD.ACEPTADA),
-          ),
-        ),
-      );
+    // Las solicitudes no se modifican: su estado efectivo lo da el viaje cancelado.
     return viaje;
   });
 }
@@ -1041,7 +1039,7 @@ export async function obtenerPasajerosAceptados(viajeId: number) {
     .where(
       and(
         eq(solicitudViajeTable.viajeId, viajeId),
-        eq(solicitudViajeTable.respuesta, RESPUESTA_SOLICITUD.ACEPTADA),
+        solicitudAceptadaSql,
       ),
     )
     .orderBy(asc(solicitudViajeTable.fechaRespuesta));
@@ -1087,7 +1085,7 @@ export async function obtenerProximosViajesDePasajero(pasajeroId: number) {
     .where(
       and(
         eq(solicitudViajeTable.pasajeroId, pasajeroId),
-        eq(solicitudViajeTable.respuesta, RESPUESTA_SOLICITUD.ACEPTADA),
+        solicitudAceptadaSql,
         isNull(viajeTable.fechaFinReal),
         isNull(viajeTable.motivoCancelacion),
         gte(viajeTable.fechaHoraSalida, new Date()),
@@ -1105,7 +1103,7 @@ export async function contarSolicitudesPendientes(conductorId: number) {
     .where(
       and(
         eq(viajeTable.conductorId, conductorId),
-        isNull(solicitudViajeTable.respuesta),
+        isNull(solicitudViajeTable.fechaRespuesta),
         viajeProgramadoSql,
       ),
     );
@@ -1127,7 +1125,7 @@ export async function responderSolicitud(
     const [solicitud] = await tx
       .select({
         viajeId: solicitudViajeTable.viajeId,
-        respuesta: solicitudViajeTable.respuesta,
+        fechaRespuesta: solicitudViajeTable.fechaRespuesta,
         conductorId: viajeTable.conductorId,
         programado: sql<boolean>`${viajeProgramadoSql}`,
       })
@@ -1139,17 +1137,16 @@ export async function responderSolicitud(
     if (solicitud.conductorId !== conductorId) {
       throw new Error('Solo el conductor del viaje puede responder la solicitud');
     }
-    if (solicitud.respuesta !== null) throw new Error('La solicitud ya fue respondida');
+    if (solicitud.fechaRespuesta !== null) throw new Error('La solicitud ya fue respondida');
     if (!solicitud.programado) throw new Error('El viaje ya no está programado');
 
     // Solo actualiza si sigue pendiente (evita respuestas dobles simultáneas)
     const [actualizada] = await tx
       .update(solicitudViajeTable)
-      .set({
-        respuesta: aceptar ? RESPUESTA_SOLICITUD.ACEPTADA : RESPUESTA_SOLICITUD.RECHAZADA,
-        fechaRespuesta: new Date(),
-      })
-      .where(and(eq(solicitudViajeTable.id, solicitudId), isNull(solicitudViajeTable.respuesta)))
+      .set({ respuesta: aceptar, fechaRespuesta: new Date() })
+      .where(
+        and(eq(solicitudViajeTable.id, solicitudId), isNull(solicitudViajeTable.fechaRespuesta)),
+      )
       .returning();
     if (!actualizada) throw new Error('La solicitud ya fue respondida');
 
@@ -1167,12 +1164,16 @@ export async function responderSolicitud(
   });
 }
 
-/** El pasajero cancela su solicitud; si ya estaba aceptada, devuelve el cupo al viaje. */
+/**
+ * El pasajero cancela su solicitud: se elimina la fila (así puede volver a solicitar
+ * el viaje). Si ya estaba aceptada, devuelve el cupo al viaje.
+ */
 export async function cancelarSolicitud(solicitudId: number, pasajeroId: number) {
   return db.transaction(async (tx) => {
     const [solicitud] = await tx
       .select({
         viajeId: solicitudViajeTable.viajeId,
+        fechaRespuesta: solicitudViajeTable.fechaRespuesta,
         respuesta: solicitudViajeTable.respuesta,
         programado: sql<boolean>`${viajeProgramadoSql}`,
       })
@@ -1184,27 +1185,24 @@ export async function cancelarSolicitud(solicitudId: number, pasajeroId: number)
 
     if (!solicitud) throw new Error('La solicitud no existe o no es tuya');
 
-    const estabaAceptada = solicitud.respuesta === RESPUESTA_SOLICITUD.ACEPTADA;
-    const estabaPendiente = solicitud.respuesta === null;
+    const estabaPendiente = solicitud.fechaRespuesta === null;
+    const estabaAceptada = !estabaPendiente && solicitud.respuesta;
     if (!estabaAceptada && !estabaPendiente) {
       throw new Error('Solo se pueden cancelar solicitudes pendientes o aceptadas');
     }
     if (!solicitud.programado) throw new Error('El viaje ya no está programado');
 
-    // Solo actualiza si el estado no cambió desde que se leyó
-    const [actualizada] = await tx
-      .update(solicitudViajeTable)
-      .set({ respuesta: RESPUESTA_SOLICITUD.CANCELADA, fechaRespuesta: new Date() })
+    // Solo elimina si el estado no cambió desde que se leyó
+    const [eliminada] = await tx
+      .delete(solicitudViajeTable)
       .where(
         and(
           eq(solicitudViajeTable.id, solicitudId),
-          estabaAceptada
-            ? eq(solicitudViajeTable.respuesta, RESPUESTA_SOLICITUD.ACEPTADA)
-            : isNull(solicitudViajeTable.respuesta),
+          estabaAceptada ? solicitudAceptadaSql : isNull(solicitudViajeTable.fechaRespuesta),
         ),
       )
       .returning();
-    if (!actualizada) throw new Error('La solicitud cambió de estado, intenta de nuevo');
+    if (!eliminada) throw new Error('La solicitud cambió de estado, intenta de nuevo');
 
     if (estabaAceptada) {
       await tx
@@ -1214,7 +1212,7 @@ export async function cancelarSolicitud(solicitudId: number, pasajeroId: number)
         })
         .where(eq(viajeTable.id, solicitud.viajeId));
     }
-    return actualizada;
+    return eliminada;
   });
 }
 

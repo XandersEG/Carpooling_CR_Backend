@@ -12,7 +12,6 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { float } from 'drizzle-orm/singlestore-core';
 
 /* -------------------------------------------------------------------------- */
 /*  CATÁLOGOS                                                                 */
@@ -21,8 +20,7 @@ import { float } from 'drizzle-orm/singlestore-core';
 export const catalogoMetodoDePagoTable = pgTable('catalogoMetodoDePago', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar({ length: 100 }).notNull(),
-  descripcion: varchar({ length: 255 }),
-  estado:boolean().notNull()
+  activo:boolean().notNull().default(true)
 });
 
 export const catalogoTiposDeVehiculo = pgTable('catalogoTiposDeVehiculo', {
@@ -30,7 +28,7 @@ export const catalogoTiposDeVehiculo = pgTable('catalogoTiposDeVehiculo', {
   nombre: varchar({ length: 100 }).notNull(),
   capacidadMaxima: integer().notNull().default(4),
   descripcion: varchar({ length: 255 }),
-  estado:boolean().notNull()
+  activo:boolean().notNull().default(true)
 });
 
 export const catalogoRangosDeEdad = pgTable('catalogoRangosDeEdad', {
@@ -38,14 +36,13 @@ export const catalogoRangosDeEdad = pgTable('catalogoRangosDeEdad', {
   nombre: varchar({ length: 100 }).notNull(),
   edadMinima: integer().notNull().default(18),
   edadMaxima: integer().notNull().default(32),
-  descripcion: varchar({ length: 255 }),
-  estado:boolean().notNull()
+  activo:boolean().notNull().default(true)
 });
 
 export const catalogoOpcionesDeGenero = pgTable('catalogoOpcionesDeGenero', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar({ length: 255 }),
-  estado:boolean().notNull()
+  activo:boolean().notNull().default(true)
 });
 
 export const catalogoReglasYTarifas = pgTable('catalogoReglasYTarifas', {
@@ -54,7 +51,7 @@ export const catalogoReglasYTarifas = pgTable('catalogoReglasYTarifas', {
   valor: decimal('valor', { precision: 9, scale: 6 }),
   unidad: varchar({ length: 255 }),
   descripcion: varchar({ length: 255 }),
-  estado:boolean().notNull()
+  activo:boolean().notNull().default(true)
 });
 
 /* -------------------------------------------------------------------------- */
@@ -65,7 +62,7 @@ export const institucionTable = pgTable('institucion', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar({ length: 150 }).notNull(),
   dominioCorreo: varchar('dominio_correo', { length: 150 }).notNull().unique(),
-  activa: boolean().notNull().default(true),
+  activo: boolean().notNull().default(true),
   creadoEn: timestamp('creado_en').notNull().defaultNow(),
   actualizadoEn: timestamp('actualizado_en')
     .notNull()
@@ -228,7 +225,7 @@ export const solicitudViajeTable = pgTable(
     puntoRecogidaLng: decimal('punto_recogida_lng', { precision: 9, scale: 6 }).notNull(),
     fechaSolicitud: timestamp('fecha_solicitud').notNull().defaultNow(),
     fechaRespuesta: timestamp('fecha_respuesta'),
-    respuesta: text('respuesta')
+    respuesta: boolean().notNull().default(true)
   },
   // Un pasajero no puede solicitar dos veces el mismo viaje
   (t) => [unique('solicitud_viaje_viaje_pasajero_uk').on(t.viajeId, t.pasajeroId)],
