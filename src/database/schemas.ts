@@ -20,6 +20,7 @@ import {
 export const catalogoMetodoDePagoTable = pgTable('catalogoMetodoDePago', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar({ length: 100 }).notNull(),
+  descripcion: varchar({ length: 255 }),
   activo:boolean().notNull().default(true)
 });
 
