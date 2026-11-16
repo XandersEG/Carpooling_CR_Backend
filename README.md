@@ -590,6 +590,93 @@ git commit -m "docs: update API documentation"
 Se recomienda configurar Branch Protection Rules en GitHub para impedir pushes directos a `main` y exigir Pull Requests antes de integrar cambios.
 
 
+## 12. Portal administrativo (módulo 5)
+
+El código del portal está en `src/admin/`: un módulo con seis controllers (sesión, recuperar contraseña, parámetros, instituciones, usuarios y administradores), sus services, los DTO en `dto/` y las consultas en `admin.queries.ts`, que usan la conexión y las tablas de `src/database/`.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/api/admin/auth/login` | Inicia sesión (`correo`, `password`, `recordar`) y devuelve `token` y `nombre`. |
+| POST | `/api/admin/auth/logout` | Cierra la sesión del token enviado. |
+| POST | `/api/admin/auth/password-reset` | Envía el correo con el enlace para cambiar la contraseña (`correo`). Responde 204 exista o no la cuenta. |
+| POST | `/api/admin/auth/password-reset/confirm` | Cambia la contraseña con el token del enlace (`token`, `password`). |
+| GET | `/api/admin/catalogs` | Los cinco catálogos, con sus campos y la cantidad de valores. |
+| GET | `/api/admin/catalogs/:catalogo/values` | Valores (parámetros) de un catálogo. |
+| POST | `/api/admin/catalogs/:catalogo/values` | Crea un parámetro. |
+| PATCH | `/api/admin/catalogs/:catalogo/values/:valueId` | Cambia el nombre, el estado o los campos propios. |
+| DELETE | `/api/admin/catalogs/:catalogo/values/:valueId` | Borra un parámetro que nadie usa. |
+| GET | `/api/admin/institutions` | Lista de instituciones. |
+| POST | `/api/admin/institutions` | Registra una institución. |
+| PATCH | `/api/admin/institutions/:id` | Cambia nombre, dominio o estado. |
+| GET | `/api/admin/users` | Usuarios por página (`buscar`, `institucionId`, `pagina`). |
+| GET | `/api/admin/users/:id` | Detalle con vehículos y actividad. |
+| PATCH | `/api/admin/users/:id` | Cambia nombre, apellidos, teléfono o estado. |
+| GET | `/api/admin/administrators` | Lista de administradores, sin la contraseña. |
+| POST | `/api/admin/administrators` | Registra un administrador (`nombre`, `correo`, `password`). |
+| PATCH | `/api/admin/administrators/:id` | Cambia nombre, correo, contraseña o estado. |
+
+`:catalogo` es la clave del catálogo. Cada catálogo tiene su tabla y, además de `nombre` y `activo`, sus propios campos:
+
+| Clave | Tabla | Campos propios |
+|---|---|---|
+| `metodos-pago` | `catalogoMetodoDePago` | `descripcion` |
+| `tipos-vehiculo` | `catalogoTiposDeVehiculo` | `capacidadMaxima`, `descripcion` |
+| `rangos-edad` | `catalogoRangosDeEdad` | `edadMinima`, `edadMaxima` |
+| `opciones-genero` | `catalogoOpcionesDeGenero` | ninguno |
+| `reglas-tarifas` | `catalogoReglasYTarifas` | `valor`, `unidad`, `descripcion` |
+
+### Sesión de administrador
+
+Todas las rutas del portal, menos `login` y las dos de recuperar la contraseña, piden la cabecera `Authorization: Bearer <token>` y responden 401 si falta o si la sesión ya no sirve. La protección está en `AdminGuard` (`src/admin/admin.guard.ts`), puesto con `@UseGuards` en cada controller.
+
+- El token es un valor al azar. En la tabla `token_refresco` se guarda solo su huella (SHA-256), con las consultas de `src/database/queries.ts`.
+- En cada petición se comprueba que el token no esté revocado ni vencido y que el administrador siga activo.
+- La sesión dura 12 horas, o 30 días si se envía `recordar: true`.
+- Deja de servir al cerrar sesión, al desactivar al administrador o al cambiarle la contraseña.
+- El inicio de sesión acepta 10 intentos por minuto desde una misma dirección (`@nestjs/throttler`). Al pasarse responde 429 durante un minuto.
+- Un administrador no puede desactivar su propia cuenta, para que siempre quede alguien que pueda entrar.
+- La contraseña se guarda como hash scrypt, generado con `PasswordHasher` de `@nestjs/authentication`. El correo se guarda en minúsculas.
+
+El primer administrador no se puede registrar desde el portal, porque todavía nadie puede entrar. Se crea desde la terminal, en la base que diga `DATABASE_URL`:
+
+```bash
+npx tsx src/admin/crear-administrador.ts
+```
+
+El comando pregunta nombre, correo y contraseña. Los demás administradores se registran desde el portal.
+
+### Recuperar la contraseña
+
+`POST /api/admin/auth/password-reset` le envía al administrador un correo con un enlace al portal (`/admin/restablecer?token=...`), y `POST /api/admin/auth/password-reset/confirm` cambia la contraseña con ese token. El código está en `password-reset.controller.ts`, `password-reset.service.ts` y `mail.service.ts`.
+
+- El enlace sirve 30 minutos y una sola vez. En `token_refresco` se guarda solo su huella, con un prefijo que la distingue de las sesiones: un enlace no sirve como sesión, ni una sesión como enlace.
+- La respuesta es la misma exista o no el correo, para no revelar qué cuentas hay.
+- Al cambiar la contraseña se cierran las sesiones abiertas de esa cuenta.
+- Se aceptan 3 solicitudes de correo por minuto desde una misma dirección.
+
+El correo sale por SMTP con `nodemailer`. Se configura en el `.env`:
+
+```env
+# cuenta de Gmail que envía los correos y su contraseña de aplicación (16 letras, sin espacios)
+SMTP_USER=cuenta.del.proyecto@gmail.com
+SMTP_PASS=abcdefghijklmnop
+# dirección del portal web, para armar el enlace del correo
+PORTAL_URL=http://localhost:8081
+```
+
+La contraseña de aplicación se crea en la cuenta de Google, en Seguridad > Verificación en dos pasos > Contraseñas de aplicaciones; la verificación en dos pasos tiene que estar activa. No es la contraseña normal de la cuenta y no debe subirse al repositorio. Gmail permite unos 500 destinatarios al día.
+
+Para usar otro proveedor de SMTP se agregan `SMTP_HOST` y `SMTP_PORT` (por defecto, `smtp.gmail.com` y `465`).
+
+Sin `SMTP_USER` y `SMTP_PASS` el correo no se envía: queda escrito en la terminal del back end, con el enlace, para poder probar sin cuenta.
+
+Notas:
+
+- Las respuestas usan los mismos nombres que las tablas (`nombre`, `dominioCorreo`, `activo`). El estado de parámetros, instituciones, usuarios y administradores es siempre el campo `activo`.
+- Cuando un dato no es válido o una regla no se cumple, la respuesta trae un mensaje en español, listo para mostrar en el portal.
+- La validación de los datos de entrada (`class-validator`) se aplica solo a estas rutas, con `@UsePipes(validacion)` en cada controller.
+- El límite de intentos cuenta por dirección IP. Si el back end se publica detrás de un proxy, hay que activar `trust proxy` en Express; si no, todos los visitantes cuentan como uno solo.
+
 ## Consideraciones finales
 
 Antes de desarrollar una funcionalidad:
