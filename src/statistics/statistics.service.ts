@@ -5,25 +5,28 @@ import {
     conductoresPorGenero, 
     pasajerosPorGenero, 
     viajesPorMetodoPago,
-    FiltrosEstadisticas
+    FiltrosEstadisticas,
+    usuariosPorRangoEdad
 } from "./statistics.queries.js"
 
-// Esta pal frontend t(->-)t
+//
 
 @Injectable()
 export class StatisticsService{
     async obtenerEstadisticas(filtros: FiltrosEstadisticas){
-        const [resumen, conductoresGenero, pasajerosGenero, viajesMetodoPago] = await Promise.all([
+        const [resumen, conductoresGenero, pasajerosGenero, viajesMetodoPago, usuariosRangoEdad] = await Promise.all([
             resumenCantidadDatos(filtros),
             conductoresPorGenero(filtros),
             pasajerosPorGenero(filtros),
-            viajesPorMetodoPago(filtros)
+            viajesPorMetodoPago(filtros),
+            usuariosPorRangoEdad(filtros)
         ]);
         return{
             resumenDatos: resumen,
             conductoresGenero: conductoresGenero,
             pasajerosGenero: pasajerosGenero,
-            viajesMetodo: viajesMetodoPago
+            viajesMetodo: viajesMetodoPago,
+            rangoEdad: usuariosRangoEdad
         }
     }
 }

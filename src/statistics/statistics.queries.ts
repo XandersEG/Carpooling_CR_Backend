@@ -1,17 +1,19 @@
 //---------------------------------------------------------------------------------------------------
 import { 
     and, 
+    between, 
     count, 
     eq, 
     gte, 
     isNotNull, 
     isNull, 
     lt, 
-    sql 
+    sql,
+    asc
 } from "drizzle-orm";
 import { union } from 'drizzle-orm/pg-core';
 import { db } from '../database/queries.js';
-import { catalogoMetodoDePagoTable, catalogoOpcionesDeGenero, solicitudViajeTable, usuarioTable, viajeTable } from "../database/schemas.js";
+import { catalogoMetodoDePagoTable, catalogoOpcionesDeGenero, catalogoRangosDeEdad, solicitudViajeTable, usuarioTable, viajeTable } from "../database/schemas.js";
 
 //---------------------------------------------------------------------------------------------------
 // Filtros generales \(^-^)/
@@ -156,4 +158,30 @@ export function viajesPorMetodoPago(filtros: FiltrosEstadisticas){
     .leftJoin(viajes, eq(viajes.metodoPagoId, catalogoMetodoDePagoTable.id))
     .groupBy(catalogoMetodoDePagoTable.id, catalogoMetodoDePagoTable.nombre)
     .orderBy(catalogoMetodoDePagoTable.id)
+}
+
+export function usuariosPorRangoEdad(filtros: FiltrosEstadisticas){
+    const activos = union(conductoresActivos(filtros), pasajerosActivos(filtros)).as('a')
+    const edad = sql<number>`date_part('year', age(${usuarioTable.fechaNacimiento}))`;
+    return db.select({
+        rango: catalogoRangosDeEdad.nombre,
+        genero: catalogoOpcionesDeGenero.nombre,
+        total: count(activos.usuarioId),
+    })
+    .from(catalogoRangosDeEdad)
+    .crossJoin(catalogoOpcionesDeGenero)
+    .leftJoin(usuarioTable,
+        and(eq(usuarioTable.generoId, catalogoOpcionesDeGenero.id),
+        between(edad, catalogoRangosDeEdad.edadMinima, catalogoRangosDeEdad.edadMaxima),
+        ),
+    )
+    .leftJoin(activos, eq(activos.usuarioId, usuarioTable.id))
+    .where(eq(catalogoRangosDeEdad.activo, true))
+    .groupBy(
+        catalogoRangosDeEdad.id,
+        catalogoRangosDeEdad.nombre,
+        catalogoOpcionesDeGenero.id,
+        catalogoOpcionesDeGenero.nombre,
+    )
+    .orderBy(asc(catalogoRangosDeEdad.edadMinima), asc(catalogoOpcionesDeGenero.id));
 }
