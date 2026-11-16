@@ -65,27 +65,27 @@ export type Catalogo = {
 // los cinco catálogos del portal, con su tabla y sus campos en el orden del prototipo. autor: kaleb lizano, 2026-11-13
 export const CATALOGOS: Record<string, Catalogo> = {
   'metodos-pago': {
-    nombre: 'Métodos de Pago',
+    nombre: 'Métodos de pago',
     tabla: catalogoMetodoDePagoTable,
     campos: ['descripcion'],
   },
   'tipos-vehiculo': {
-    nombre: 'Tipos de Vehículo',
+    nombre: 'Tipos de vehículo',
     tabla: catalogoTiposDeVehiculo,
     campos: ['capacidadMaxima', 'descripcion'],
   },
   'rangos-edad': {
-    nombre: 'Rangos de Edad',
+    nombre: 'Rangos de edad',
     tabla: catalogoRangosDeEdad,
     campos: ['edadMinima', 'edadMaxima'],
   },
   'opciones-genero': {
-    nombre: 'Opciones de Género',
+    nombre: 'Opciones de género',
     tabla: catalogoOpcionesDeGenero,
     campos: [],
   },
   'reglas-tarifas': {
-    nombre: 'Reglas y Tarifas',
+    nombre: 'Reglas y tarifas',
     tabla: catalogoReglasYTarifas,
     campos: ['valor', 'unidad', 'descripcion'],
   },
