@@ -160,8 +160,6 @@ export function viajesPorMetodoPago(filtros: FiltrosEstadisticas){
     .orderBy(catalogoMetodoDePagoTable.id)
 }
 
-// Función agregada al final porque se me olvido que existia :b
-
 export function usuariosPorRangoEdad(filtros: FiltrosEstadisticas){
     const activos = union(conductoresActivos(filtros), pasajerosActivos(filtros)).as('a')
     const edad = sql<number>`date_part('year', age(${usuarioTable.fechaNacimiento}))`;
