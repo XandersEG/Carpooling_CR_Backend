@@ -6,6 +6,9 @@ import { CatalogsController } from './catalogs.controller.js';
 import { CatalogsService } from './catalogs.service.js';
 import { InstitutionsController } from './institutions.controller.js';
 import { InstitutionsService } from './institutions.service.js';
+import { MailService } from './mail.service.js';
+import { PasswordResetController } from './password-reset.controller.js';
+import { PasswordResetService } from './password-reset.service.js';
 import { SessionsController } from './sessions.controller.js';
 import { SessionsService } from './sessions.service.js';
 import { UsersController } from './users.controller.js';
@@ -14,7 +17,7 @@ import { UsersService } from './users.service.js';
 // módulo del portal administrativo: sesión, parámetros, instituciones, usuarios y administradores. autor: kaleb lizano, 2026-11-13
 @Module({
   imports: [
-    // hasta 10 intentos de inicio de sesión por minuto desde una misma dirección
+    // hasta 10 intentos por minuto desde una misma dirección en las rutas que no piden sesión
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 10 }],
       errorMessage:
@@ -23,6 +26,7 @@ import { UsersService } from './users.service.js';
   ],
   controllers: [
     SessionsController,
+    PasswordResetController,
     CatalogsController,
     InstitutionsController,
     UsersController,
@@ -30,6 +34,8 @@ import { UsersService } from './users.service.js';
   ],
   providers: [
     SessionsService,
+    PasswordResetService,
+    MailService,
     CatalogsService,
     InstitutionsService,
     UsersService,
