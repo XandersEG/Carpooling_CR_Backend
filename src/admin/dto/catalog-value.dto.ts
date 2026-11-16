@@ -14,7 +14,7 @@ import {
 import { recortar } from './recortar.js';
 import { SiSeEnvia } from './si-se-envia.js';
 
-// la columna valor es numeric(9,2): no admite más de 999.999999
+// la columna valor es numeric(9,2): no admite más de 9999999.99
 const VALOR_MAXIMO = 9999999.99;
 
 // campos propios de los catálogos; cada catálogo usa solo los suyos
