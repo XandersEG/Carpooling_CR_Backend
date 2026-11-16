@@ -49,7 +49,7 @@ export const catalogoOpcionesDeGenero = pgTable('catalogoOpcionesDeGenero', {
 export const catalogoReglasYTarifas = pgTable('catalogoReglasYTarifas', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   nombre: varchar({ length: 255 }),
-  valor: decimal('valor', { precision: 9, scale: 6 }),
+  valor: decimal('valor', { precision: 9, scale: 2 }),
   unidad: varchar({ length: 255 }),
   descripcion: varchar({ length: 255 }),
   activo:boolean().notNull().default(true)
