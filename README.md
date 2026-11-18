@@ -596,7 +596,7 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| POST | `/api/admin/auth/login` | Inicia sesión (`correo`, `password`, `recordar`) y devuelve `token` y `nombre`. |
+| POST | `/api/admin/auth/login` | Inicia sesión (`correo`, `password`, `recordar`) y devuelve `token`, `id` y `nombre`. |
 | POST | `/api/admin/auth/logout` | Cierra la sesión del token enviado. |
 | POST | `/api/admin/auth/password-reset` | Envía el correo con el enlace para cambiar la contraseña (`correo`). Responde 204 exista o no la cuenta. |
 | POST | `/api/admin/auth/password-reset/confirm` | Cambia la contraseña con el token del enlace (`token`, `password`). |
@@ -613,7 +613,7 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 | PATCH | `/api/admin/users/:id` | Cambia nombre, apellidos, teléfono o estado. |
 | GET | `/api/admin/administrators` | Lista de administradores, sin la contraseña. |
 | POST | `/api/admin/administrators` | Registra un administrador (`nombre`, `correo`, `password`). |
-| PATCH | `/api/admin/administrators/:id` | Cambia nombre, correo, contraseña o estado. |
+| PATCH | `/api/admin/administrators/:id` | Cambia nombre, correo, contraseña o estado de la cuenta propia. |
 
 `:catalogo` es la clave del catálogo. Cada catálogo tiene su tabla y, además de `nombre` y `activo`, sus propios campos:
 
@@ -634,8 +634,21 @@ Todas las rutas del portal, menos `login` y las dos de recuperar la contraseña,
 - La sesión dura 12 horas, o 30 días si se envía `recordar: true`.
 - Deja de servir al cerrar sesión, al desactivar al administrador o al cambiarle la contraseña.
 - El inicio de sesión acepta 10 intentos por minuto desde una misma dirección (`@nestjs/throttler`). Al pasarse responde 429 durante un minuto.
-- Un administrador no puede desactivar su propia cuenta, para que siempre quede alguien que pueda entrar.
 - La contraseña se guarda como hash scrypt, generado con `PasswordHasher` de `@nestjs/authentication`. El correo se guarda en minúsculas.
+
+### Permisos de los administradores
+
+Cualquier administrador puede registrar a otros, pero solo puede modificar su propia cuenta: nombre, correo, contraseña y estado. La regla está en `administrators.service.ts`:
+
+- Si intenta modificar, desactivar o activar a otro administrador, la respuesta es 403, "Solo puedes modificar tu propia cuenta."
+- Al desactivar su cuenta se cierran sus sesiones.
+- El último administrador activo no puede desactivarse, para que siempre quede alguien que pueda entrar: responde 400, "No puedes desactivar tu cuenta porque eres el único administrador activo. Primero registra a otro administrador."
+
+Como nadie puede activar a otro, una cuenta desactivada solo se vuelve a activar desde la base de datos (en Supabase, desde el editor SQL):
+
+```sql
+update administrador set activo = true where correo = 'correo@del.administrador';
+```
 
 El primer administrador no se puede registrar desde el portal, porque todavía nadie puede entrar. Se crea desde la terminal, en la base que diga `DATABASE_URL`:
 

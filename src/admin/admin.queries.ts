@@ -309,6 +309,10 @@ export async function actualizarUsuario(
 
 /* ---------------------------- administradores --------------------------- */
 
+export function contarAdministradoresActivos() {
+  return db.$count(administradorTable, eq(administradorTable.activo, true));
+}
+
 // registra un administrador y devuelve sus datos sin la contraseña
 export async function insertarAdministrador(datos: {
   nombre: string;
