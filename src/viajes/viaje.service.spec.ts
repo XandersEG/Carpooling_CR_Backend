@@ -9,9 +9,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ViajeService } from './viaje.service.js';
 import { ViajeRepo } from './viaje.repo.js';
 
-jest.mock('./viaje.repo.js', () => ({
-  ViajeRepo: class ViajeRepoMock {},
-}));
+// jest.mock('./viaje.repo.js', () => ({
+//   ViajeRepo: class ViajeRepoMock {},
+// }));
 
 describe('ViajeService', () => {
   let service: ViajeService;
