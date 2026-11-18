@@ -6,6 +6,7 @@ import { AppService } from './app.service.js';
 import { StatisticsModule } from '../statistics/statistics.module.js';
 import { TripsModule } from '../trips/trips.module.js';
 import { PassengerRequestsModule } from '../passenger-requests/passenger-requests.module.js';
+import { DriverRequestsModule } from '../driver-requests/driver-requests.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PassengerRequestsModule } from '../passenger-requests/passenger-request
     StatisticsModule,
     TripsModule,
     PassengerRequestsModule,
+    DriverRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
