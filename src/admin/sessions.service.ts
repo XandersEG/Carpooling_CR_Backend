@@ -52,7 +52,7 @@ export class SessionsService {
       await revocarTokenRefresco(tokenHash);
       throw new UnauthorizedException(DATOS_INCORRECTOS);
     }
-    return { token, nombre: administrador.nombre };
+    return { token, id: administrador.id, nombre: administrador.nombre };
   }
 
   // cierra la sesión: el token deja de servir. autor: Valeria Cascante, 2026-11-14
