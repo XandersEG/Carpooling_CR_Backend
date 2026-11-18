@@ -6,14 +6,10 @@ import { AppService } from './app.service.js';
 import { StatisticsModule } from '../statistics/statistics.module.js';
 import { VehiclesModule } from '../vehicles/vehicles.module.js';
 import { PublicCatalogsModule } from '../catalogs/public-catalogs.module.js';
+import { ViajeModule } from '../viajes/viaje.module.js';
 
 @Module({
-  imports: [
-    AdminModule,
-    StatisticsModule,
-    VehiclesModule,
-    PublicCatalogsModule,
-  ],
+  imports: [AdminModule, StatisticsModule, VehiclesModule, PublicCatalogsModule, ViajeModule],
   controllers: [AppController],
   providers: [AppService],
 })
