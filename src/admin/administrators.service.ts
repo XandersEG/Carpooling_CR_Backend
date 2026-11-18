@@ -2,6 +2,7 @@ import { PasswordHasher } from '@nestjs/authentication';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -15,6 +16,7 @@ import {
 import {
   actualizarAdministrador,
   codigoDeError,
+  contarAdministradoresActivos,
   insertarAdministrador,
   sinCambios,
 } from './admin.queries.js';
@@ -50,11 +52,16 @@ export class AdministratorsService {
     );
   }
 
-  // cambia los datos, la contraseña o el estado de un administrador. autor: kaleb lizano, 2026-11-13
+  // cambia los datos, la contraseña o el estado de la cuenta propia; nadie modifica a otro administrador. autor: kaleb lizano, 2026-11-13
   async actualizar(id: number, dto: UpdateAdministratorDto, quienId: number) {
+    if (id !== quienId) {
+      throw new ForbiddenException('Solo puedes modificar tu propia cuenta.');
+    }
     // así siempre queda al menos un administrador que puede entrar
-    if (dto.activo === false && id === quienId) {
-      throw new BadRequestException('No puedes desactivar tu propia cuenta.');
+    if (dto.activo === false && (await contarAdministradoresActivos()) <= 1) {
+      throw new BadRequestException(
+        'No puedes desactivar tu cuenta porque eres el único administrador activo. Primero registra a otro administrador.',
+      );
     }
     const cambios = {
       nombre: dto.nombre,

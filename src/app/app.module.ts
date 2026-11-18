@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { StatisticsModule } from '../statistics/statistics.module.js';
+import {PassengerTripsModule} from '../passenger-trips/passenger-trips.module.js'
 import { TripsModule } from '../trips/trips.module.js';
 import { PassengerRequestsModule } from '../passenger-requests/passenger-requests.module.js';
 import { VehiclesModule } from '../vehicles/vehicles.module.js';
@@ -21,6 +22,7 @@ import { ViajeModule } from '../viajes/viaje.module.js';
     VehiclesModule,
     PublicCatalogsModule,
     ViajeModule,
+    PassengerTripsModule
   ],
   controllers: [AppController],
   providers: [AppService],
