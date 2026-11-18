@@ -220,35 +220,82 @@ Resultado:
   Inserta entre 1 y "maxPorConductor" vehículos por cada usuario conductor, con placas únicas;
   lanza error si no hay conductores
 */
-export async function sembrarVehiculos(opciones: { maxPorConductor?: number } = {}) {
+
+export async function sembrarVehiculos(
+  opciones: { maxPorConductor?: number } = {},
+) {
   const { maxPorConductor = 2 } = opciones;
+
+  if (!Number.isInteger(maxPorConductor) || maxPorConductor < 1) {
+    throw new Error('El máximo de vehículos debe ser un entero positivo');
+  }
 
   const conductores = await db
     .select({ id: usuarioTable.id })
     .from(usuarioTable)
     .where(eq(usuarioTable.esConductor, true));
+
   if (conductores.length === 0) {
-    throw new Error('No hay conductores: ejecuta sembrarUsuarios() primero');
+    throw new Error('No hay conductores registrados');
   }
 
-  const placasUsadas = new Set<string>();
-  const valores = conductores.flatMap((conductor) =>
-    Array.from({ length: faker.number.int({ min: 1, max: maxPorConductor }) }, () => {
-      let placa = generarPlaca();
-      while (placasUsadas.has(placa)) placa = generarPlaca();
-      placasUsadas.add(placa);
+  // Consultar los vehículos que ya existen
+  const registrados = await db
+    .select({
+      usuarioId: vehiculoTable.usuarioId,
+      placa: vehiculoTable.placa,
+    })
+    .from(vehiculoTable);
 
-      return {
-        usuarioId: conductor.id,
-        placa,
-        marca: faker.vehicle.manufacturer(),
-        modelo: faker.vehicle.model(),
-        color: faker.vehicle.color(),
-        capacidadPasajeros: faker.number.int({ min: 3, max: 6 }),
-        activo: true,
-      };
-    }),
+  const usuariosConVehiculo = new Set(
+    registrados.map((vehiculo) => vehiculo.usuarioId),
   );
+
+  const placasUsadas = new Set(
+    registrados.map((vehiculo) => vehiculo.placa),
+  );
+
+  // Evitar agregar vehículos adicionales al ejecutar otra vez la semilla
+  const conductoresSinVehiculo = conductores.filter(
+    (conductor) => !usuariosConVehiculo.has(conductor.id),
+  );
+
+  const valores = conductoresSinVehiculo.flatMap((conductor) =>
+    Array.from(
+      {
+        length: faker.number.int({
+          min: 1,
+          max: maxPorConductor,
+        }),
+      },
+      (_, indice) => {
+        let placa = generarPlaca();
+
+        while (placasUsadas.has(placa)) {
+          placa = generarPlaca();
+        }
+
+        placasUsadas.add(placa);
+
+        return {
+          usuarioId: conductor.id,
+          placa,
+          marca: faker.vehicle.manufacturer(),
+          modelo: faker.vehicle.model(),
+          color: faker.vehicle.color(),
+          capacidadPasajeros: faker.number.int({
+            min: 3,
+            max: 6,
+          }),
+          activo: indice === 0,
+        };
+      },
+    ),
+  );
+
+  if (valores.length === 0) {
+    return [];
+  }
 
   return db
     .insert(vehiculoTable)
@@ -260,6 +307,7 @@ export async function sembrarVehiculos(opciones: { maxPorConductor?: number } = 
       placa: vehiculoTable.placa,
     });
 }
+
 
 const LUGARES_CR = [
   { nombre: 'San Pedro de Montes de Oca', lat: 9.934, lng: -84.0507 },
@@ -541,16 +589,45 @@ Salidas:
 Resultado:
   Inserta SINPE Móvil, Efectivo y Gratuito / Solidario
 */
+
 export async function insertarMetodosDePagoPorDefecto() {
-    return db
-        .insert(catalogoMetodoDePagoTable)
-        .values([
-            {nombre: 'SINPE Móvil', descripcion: 'Transferencia al número del conductor al finalizar el viaje'},
-            {nombre: 'Efectivo', descripcion: 'Pago en colones directamente al conductor'},
-            {nombre: 'Gratuito / Solidario', descripcion: 'El conductor ofrece el viaje sin costo'}
-        ])
-        .returning();
+  const metodos = [
+    {
+      nombre: 'SINPE Móvil',
+      descripcion: 'Transferencia al número del conductor al finalizar el viaje',
+    },
+    {
+      nombre: 'Efectivo',
+      descripcion: 'Pago en colones directamente al conductor',
+    },
+    {
+      nombre: 'Gratuito / Solidario',
+      descripcion: 'El conductor ofrece el viaje sin costo',
+    },
+  ];
+
+  const existentes = await db
+    .select({ nombre: catalogoMetodoDePagoTable.nombre })
+    .from(catalogoMetodoDePagoTable);
+
+  const nombresExistentes = new Set(
+    existentes.map((metodo) => metodo.nombre),
+  );
+
+  const faltantes = metodos.filter(
+    (metodo) => !nombresExistentes.has(metodo.nombre),
+  );
+
+  if (faltantes.length === 0) {
+    return [];
+  }
+
+  return db
+    .insert(catalogoMetodoDePagoTable)
+    .values(faltantes)
+    .returning();
 }
+
 
 /*
 Función para insertar el catálogo de rangos de edad por defecto
@@ -626,9 +703,15 @@ export async function sembrarTodo(
     cantidad: opciones.administradores ?? 2,
     passwordHash,
   });
-  const usuarios = await sembrarUsuarios({ cantidad: opciones.usuarios ?? 30, passwordHash });
-  const vehiculos = await sembrarVehiculos();
-  const viajes = await sembrarViajes();
+const usuarios = await sembrarUsuarios({
+  cantidad: opciones.usuarios ?? 30,
+  passwordHash,
+});
+
+await insertarMetodosDePagoPorDefecto();
+
+const vehiculos = await sembrarVehiculos();
+const viajes = await sembrarViajes();
   const solicitudes = await sembrarSolicitudesDeViaje();
 
   const resumen = {
