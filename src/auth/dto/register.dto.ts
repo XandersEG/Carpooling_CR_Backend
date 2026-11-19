@@ -3,7 +3,9 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
+  Equals,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsISO8601,
@@ -50,4 +52,10 @@ export class RegisterDto {
   @IsString()
   @Length(12, 128)
   password!: string;
+
+  @Equals(true, {
+  message: 'Debes aceptar los términos y condiciones.',
+    })
+    @IsBoolean()
+    acceptedTerms!: boolean;
 }
