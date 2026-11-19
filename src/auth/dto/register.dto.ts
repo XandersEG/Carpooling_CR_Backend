@@ -1,10 +1,9 @@
- import { Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
   IsArray,
-  IsBoolean,
   IsEmail,
   IsIn,
   IsISO8601,
@@ -12,7 +11,6 @@ import {
   Length,
   Matches,
   MaxLength,
-  Equals,
 } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) =>
@@ -25,7 +23,9 @@ export class RegisterDto {
   fullName!: string;
 
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
+    typeof value === 'string'
+      ? value.trim().toLowerCase()
+      : value,
   )
   @IsEmail()
   @MaxLength(255)
@@ -50,10 +50,4 @@ export class RegisterDto {
   @IsString()
   @Length(12, 128)
   password!: string;
-
-  // Los términos del proyecto exigen aceptación explícita.
-  @Equals(true, { message: 'Debes aceptar los términos y condiciones.' })
-  @IsBoolean()
-  acceptedTerms!: boolean;
 }
-

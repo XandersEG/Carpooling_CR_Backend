@@ -83,9 +83,8 @@ export class RegistrationService {
       apellidos,
       fechaNacimiento: input.birthDate,
       esConductor: input.roles.includes('conductor'),
-      aceptoTerminos: input.acceptedTerms === true,
-      fechaAceptacionTerminos:
-        input.acceptedTerms === true ? new Date() : null,
+      aceptoTerminos: true,
+      fechaAceptacionTerminos: new Date(),
 
       // En el esquema actual, null significa correo verificado.
       // El registro no debe afirmar que el correo ya fue verificado.

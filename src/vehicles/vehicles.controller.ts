@@ -20,22 +20,25 @@ import { VehiclesService } from './vehicles.service.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto.js';
 
-// un id que no es un número no puede ser de ningún vehículo
 const idDeVehiculo = new ParseIntPipe({
-  exceptionFactory: () => new NotFoundException('El vehículo no existe.'),
+  exceptionFactory: () =>
+    new NotFoundException('El vehículo no existe.'),
 });
 
-// vehículos del conductor; todas las rutas piden sesión de usuario
 @Controller('driver/vehicles')
 @UseGuards(UserGuard)
 @UsePipes(validacion)
 export class VehiclesController {
-  constructor(private readonly vehiclesService: VehiclesService) {}
+  constructor(
+    private readonly vehiclesService: VehiclesService,
+  ) {}
 
   // GET /api/driver/vehicles
   @Get()
   listar(@Req() peticion: PeticionDeUsuario) {
-    return this.vehiclesService.listar(peticion.usuarioId);
+    return this.vehiclesService.listar(
+      peticion.usuarioId,
+    );
   }
 
   // GET /api/driver/vehicles/:id
@@ -44,13 +47,22 @@ export class VehiclesController {
     @Param('id', idDeVehiculo) id: number,
     @Req() peticion: PeticionDeUsuario,
   ) {
-    return this.vehiclesService.buscarPorId(id, peticion.usuarioId);
+    return this.vehiclesService.buscarPorId(
+      id,
+      peticion.usuarioId,
+    );
   }
 
   // POST /api/driver/vehicles
   @Post()
-  crear(@Body() dto: CreateVehicleDto, @Req() peticion: PeticionDeUsuario) {
-    return this.vehiclesService.crear(peticion.usuarioId, dto);
+  crear(
+    @Body() dto: CreateVehicleDto,
+    @Req() peticion: PeticionDeUsuario,
+  ) {
+    return this.vehiclesService.crear(
+      peticion.usuarioId,
+      dto,
+    );
   }
 
   // PATCH /api/driver/vehicles/:id
@@ -60,7 +72,11 @@ export class VehiclesController {
     @Body() dto: UpdateVehicleDto,
     @Req() peticion: PeticionDeUsuario,
   ) {
-    return this.vehiclesService.actualizar(id, peticion.usuarioId, dto);
+    return this.vehiclesService.actualizar(
+      id,
+      peticion.usuarioId,
+      dto,
+    );
   }
 
   // DELETE /api/driver/vehicles/:id
@@ -70,15 +86,21 @@ export class VehiclesController {
     @Param('id', idDeVehiculo) id: number,
     @Req() peticion: PeticionDeUsuario,
   ) {
-    return this.vehiclesService.eliminar(id, peticion.usuarioId);
+    return this.vehiclesService.eliminar(
+      id,
+      peticion.usuarioId,
+    );
   }
 
-  // PATCH /api/driver/vehicles/:id/activate: deja este vehículo como el único activo
+  // PATCH /api/driver/vehicles/:id/activate
   @Patch(':id/activate')
   activar(
     @Param('id', idDeVehiculo) id: number,
     @Req() peticion: PeticionDeUsuario,
   ) {
-    return this.vehiclesService.activar(id, peticion.usuarioId);
+    return this.vehiclesService.activar(
+      id,
+      peticion.usuarioId,
+    );
   }
 }
