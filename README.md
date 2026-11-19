@@ -592,7 +592,7 @@ Se recomienda configurar Branch Protection Rules en GitHub para impedir pushes d
 
 ## 12. Portal administrativo (módulo 5)
 
-El código del portal está en `src/admin/`: un módulo con seis controllers (sesión, recuperar contraseña, parámetros, instituciones, usuarios y administradores), sus services, los DTO en `dto/` y las consultas en `admin.queries.ts`, que usan la conexión y las tablas de `src/database/`.
+El código del portal está en `src/admin/`: sesión, parámetros, instituciones, usuarios y administradores. Las consultas generales del portal están en `src/consultas/`, con su controller, service, DTO y consultas Drizzle; ambos módulos usan las tablas de `src/database/`.
 
 | Método | Ruta | Qué hace |
 |---|---|---|
@@ -611,6 +611,7 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 | GET | `/api/admin/users` | Usuarios por página (`buscar`, `institucionId`, `pagina`). |
 | GET | `/api/admin/users/:id` | Detalle con vehículos y actividad. |
 | PATCH | `/api/admin/users/:id` | Cambia nombre, apellidos, teléfono o estado. |
+| GET | `/api/admin/consultas/usuarios-nuevos` | Usuarios nuevos (`meses`, `institucionId`, `buscar`), totales y registros por mes. |
 | GET | `/api/admin/administrators` | Lista de administradores, sin la contraseña. |
 | POST | `/api/admin/administrators` | Registra un administrador (`nombre`, `correo`, `password`). |
 | PATCH | `/api/admin/administrators/:id` | Cambia nombre, correo, contraseña o estado de la cuenta propia. |
