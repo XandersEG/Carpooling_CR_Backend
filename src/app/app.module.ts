@@ -24,7 +24,7 @@ import { ConcurrentPointsModule } from '../concurrent-points/concurrent-points.m
     PublicCatalogsModule,
     ViajeModule,
     PassengerTripsModule,
-    ConcurrentPointsModule,
+    ConcurrentPointsModule
   ],
   controllers: [AppController],
   providers: [AppService],
