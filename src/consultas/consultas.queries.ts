@@ -18,6 +18,7 @@ import {
   solicitudViajeTable,
   usuarioTable,
   viajeTable,
+  vehiculoTable,
 } from '../database/schemas.js';
 
 // consultas generales del portal administrativo.
@@ -42,6 +43,14 @@ function viajeFinalizado({ institucionId, desde, hasta }: FiltrosConsulta) {
     desde ? gte(viajeTable.fechaHoraSalida, sql`${desde}::date`) : undefined,
     hasta ? lt(viajeTable.fechaHoraSalida, sql`${hasta}::date + 1`) : undefined,
     institucionId ? eq(usuarioTable.institucionId, institucionId) : undefined,
+  );
+}
+
+// viajes en un rango de fechas (sin filtrar por estado)
+function viajesEnRangoFechas({ desde, hasta }: Pick<FiltrosConsulta, 'desde' | 'hasta'>) {
+  return and(
+    desde ? gte(viajeTable.fechaHoraSalida, sql`${desde}::date`) : undefined,
+    hasta ? lt(viajeTable.fechaHoraSalida, sql`${hasta}::date + 1`) : undefined,
   );
 }
 
@@ -196,4 +205,44 @@ export async function listarUsuariosNuevos(
     )
     .where(filtrosUsuariosNuevos(filtros, buscar))
     .orderBy(desc(usuarioTable.creadoEn), desc(usuarioTable.id));
+}
+
+// viajes en un rango de fechas con información del conductor y vehículo
+export async function listarViajesEnRango(filtros: FiltrosConsulta) {
+  return db
+    .select({
+      id: viajeTable.id,
+      conductorId: usuarioTable.id,
+      conductorNombre: usuarioTable.nombre,
+      conductorApellidos: usuarioTable.apellidos,
+      vehiculoId: vehiculoTable.id,
+      placa: vehiculoTable.placa,
+      marca: vehiculoTable.marca,
+      modelo: vehiculoTable.modelo,
+      origenNombre: viajeTable.origenNombre,
+      origenLat: viajeTable.origenLat,
+      origenLng: viajeTable.origenLng,
+      destinoNombre: viajeTable.destinoNombre,
+      destinoLat: viajeTable.destinoLat,
+      destinoLng: viajeTable.destinoLng,
+      rutaPolyline: viajeTable.rutaPolyline,
+      fechaHoraSalida: viajeTable.fechaHoraSalida,
+      cuposTotales: viajeTable.cuposTotales,
+      cuposDisponibles: viajeTable.cuposDisponibles,
+      costo: viajeTable.costo,
+      fechaInicioReal: viajeTable.fechaInicioReal,
+      fechaFinReal: viajeTable.fechaFinReal,
+    })
+    .from(viajeTable)
+    .innerJoin(usuarioTable, eq(viajeTable.conductorId, usuarioTable.id))
+    .innerJoin(vehiculoTable, eq(viajeTable.vehiculoId, vehiculoTable.id))
+    .where(
+      and(
+        viajesEnRangoFechas(filtros),
+        filtros.institucionId
+          ? eq(usuarioTable.institucionId, filtros.institucionId)
+          : undefined,
+      ),
+    )
+    .orderBy(asc(viajeTable.fechaHoraSalida));
 }
