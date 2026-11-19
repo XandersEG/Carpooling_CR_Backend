@@ -1,7 +1,10 @@
 
 import { Controller, Get } from '@nestjs/common';
 
-import { listarMetodosPago } from '../database/queries.js';
+import {
+  listarMetodosPago,
+  listarOpcionesGenero,
+} from '../database/queries.js';
 
 @Controller('catalogs')
 export class PublicCatalogsController {
