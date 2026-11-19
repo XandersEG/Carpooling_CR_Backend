@@ -25,6 +25,20 @@ function fechaValida(fecha: string | undefined, parametro: string) {
   }
 }
 
+function filtrosRanking(top?: number, institucionId?: number, buscar?: string) {
+  const limite = top ?? 5;
+  if (limite < 1 || limite > 20) {
+    throw new BadRequestException('top debe estar entre 1 y 20.');
+  }
+  if (institucionId !== undefined && institucionId <= 0) {
+    throw new BadRequestException('institucionId debe ser positivo.');
+  }
+  if (buscar !== undefined && buscar.trim().length > 100) {
+    throw new BadRequestException('buscar no puede tener más de 100 caracteres.');
+  }
+  return { top: limite, institucionId, buscar: buscar?.trim() };
+}
+
 @Controller('admin/consultas')
 @UseGuards(AdminGuard)
 export class ConsultasAdminController {
@@ -53,20 +67,15 @@ export class ConsultasAdminController {
     @Query('institucionId', new ParseIntPipe({ optional: true })) institucionId?: number,
     @Query('buscar') buscar?: string,
   ) {
-    const limite = top ?? 5;
-    if (limite < 1 || limite > 20) {
-      throw new BadRequestException('top debe estar entre 1 y 20.');
-    }
-    if (institucionId !== undefined && institucionId <= 0) {
-      throw new BadRequestException('institucionId debe ser positivo.');
-    }
-    if (buscar !== undefined && buscar.trim().length > 100) {
-      throw new BadRequestException('buscar no puede tener más de 100 caracteres.');
-    }
-    return this.consultas.topConductores({
-      top: limite,
-      institucionId,
-      buscar: buscar?.trim(),
-    });
+    return this.consultas.topConductores(filtrosRanking(top, institucionId, buscar));
+  }
+
+  @Get('usuarios-activos')
+  usuariosActivos(
+    @Query('top', new ParseIntPipe({ optional: true })) top?: number,
+    @Query('institucionId', new ParseIntPipe({ optional: true })) institucionId?: number,
+    @Query('buscar') buscar?: string,
+  ) {
+    return this.consultas.usuariosActivos(filtrosRanking(top, institucionId, buscar));
   }
 }

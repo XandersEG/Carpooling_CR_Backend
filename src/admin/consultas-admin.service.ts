@@ -3,12 +3,18 @@ import { and, asc, count, desc, eq, gt, gte, ilike, isNotNull, isNull, lt, sql }
 import { db } from '../database/queries.js';
 import {
   institucionTable,
+  solicitudViajeTable,
   usuarioTable,
   viajeTable,
 } from '../database/schemas.js';
 
 type FiltrosMonto = { institucionId?: number; desde?: string; hasta?: string };
 type FiltrosTopConductores = {
+  top: number;
+  institucionId?: number;
+  buscar?: string;
+};
+type FiltrosUsuariosActivos = {
   top: number;
   institucionId?: number;
   buscar?: string;
@@ -66,6 +72,82 @@ export class ConsultasAdminService {
     ]);
 
     return { conductores, totalConductores: total?.total ?? 0 };
+  }
+
+  async usuariosActivos(filtros: FiltrosUsuariosActivos) {
+    const viajesComoConductor = db
+      .select({
+        usuarioId: viajeTable.conductorId,
+        cantidadConductor: sql<number>`count(${viajeTable.id})::int`.as('cantidad_conductor'),
+      })
+      .from(viajeTable)
+      .where(and(isNotNull(viajeTable.fechaFinReal), isNull(viajeTable.motivoCancelacion)))
+      .groupBy(viajeTable.conductorId)
+      .as('viajes_como_conductor');
+
+    const viajesComoPasajero = db
+      .select({
+        usuarioId: solicitudViajeTable.pasajeroId,
+        cantidadPasajero: sql<number>`count(${solicitudViajeTable.id})::int`.as('cantidad_pasajero'),
+      })
+      .from(solicitudViajeTable)
+      .innerJoin(viajeTable, eq(solicitudViajeTable.viajeId, viajeTable.id))
+      .where(
+        and(
+          isNotNull(solicitudViajeTable.fechaRespuesta),
+          eq(solicitudViajeTable.respuesta, true),
+          isNotNull(viajeTable.fechaFinReal),
+          isNull(viajeTable.motivoCancelacion),
+        ),
+      )
+      .groupBy(solicitudViajeTable.pasajeroId)
+      .as('viajes_como_pasajero');
+
+    const viajesFinalizados = sql<number>`coalesce(${viajesComoConductor.cantidadConductor}, 0)
+      + coalesce(${viajesComoPasajero.cantidadPasajero}, 0)`;
+    const condiciones = and(
+      gt(viajesFinalizados, 0),
+      filtros.institucionId === undefined
+        ? undefined
+        : eq(usuarioTable.institucionId, filtros.institucionId),
+      filtros.buscar
+        ? ilike(
+            sql`${usuarioTable.nombre} || ' ' || ${usuarioTable.apellidos}`,
+            `%${filtros.buscar}%`,
+          )
+        : undefined,
+    );
+
+    const usuariosConViajes = db
+      .select({
+        usuarioId: usuarioTable.id,
+        usuario: sql<string>`${usuarioTable.nombre} || ' ' || ${usuarioTable.apellidos}`.as('usuario'),
+        institucion: institucionTable.nombre,
+        viajesFinalizados: viajesFinalizados.as('viajes_finalizados'),
+      })
+      .from(usuarioTable)
+      .innerJoin(institucionTable, eq(usuarioTable.institucionId, institucionTable.id))
+      .leftJoin(viajesComoConductor, eq(viajesComoConductor.usuarioId, usuarioTable.id))
+      .leftJoin(viajesComoPasajero, eq(viajesComoPasajero.usuarioId, usuarioTable.id))
+      .where(condiciones)
+      .as('usuarios_activos');
+
+    const [usuarios, [total]] = await Promise.all([
+      db
+        .select()
+        .from(usuariosConViajes)
+        .orderBy(
+          desc(usuariosConViajes.viajesFinalizados),
+          asc(usuariosConViajes.usuario),
+          asc(usuariosConViajes.usuarioId),
+        )
+        .limit(filtros.top),
+      db
+        .select({ total: count() })
+        .from(usuariosConViajes),
+    ]);
+
+    return { usuarios, totalUsuarios: total?.total ?? 0 };
   }
 
   async montoPromedio(filtros: FiltrosMonto) {
