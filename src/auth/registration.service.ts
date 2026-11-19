@@ -1,22 +1,21 @@
+import { PasswordHasher } from '@nestjs/authentication';
 import {
   BadRequestException,
   ConflictException,
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+
 import type { RegisterDto } from './dto/register.dto.js';
-import { PasswordService } from './password.service.js';
 import { RegistrationRepository } from './registration.repository.js';
 
 @Injectable()
 export class RegistrationService {
+  private readonly hasher = new PasswordHasher();
+
   constructor(
     @Inject(RegistrationRepository)
     private readonly repository: RegistrationRepository,
-
-    @Inject(PasswordService)
-    private readonly passwords: PasswordService,
   ) {}
 
   async register(input: RegisterDto) {
@@ -58,7 +57,6 @@ export class RegistrationService {
     }
 
     // El móvil envía un único campo fullName.
-    // División provisional para adaptarlo al esquema existente.
     const [nombre, ...remainingNames] = input.fullName
       .trim()
       .split(/\s+/);
@@ -71,8 +69,8 @@ export class RegistrationService {
       );
     }
 
-    const passwordHash =
-      await this.passwords.hash(input.password);
+    // Se utiliza el mismo PasswordHasher que usa AuthService al hacer login.
+    const passwordHash = await this.hasher.hash(input.password);
 
     const user = await this.repository.create({
       institucionId: institution.id,
@@ -83,13 +81,12 @@ export class RegistrationService {
       apellidos,
       fechaNacimiento: input.birthDate,
       esConductor: input.roles.includes('conductor'),
-      aceptoTerminos: input.acceptedTerms === true,
+      aceptoTerminos: input.acceptedTerms,
       fechaAceptacionTerminos:
-        input.acceptedTerms === true ? new Date() : null,
+        input.acceptedTerms ? new Date() : null,
 
-      // En el esquema actual, null significa correo verificado.
-      // El registro no debe afirmar que el correo ya fue verificado.
-      tokenVerificacion: randomBytes(32).toString('hex'),
+      // Prototipo: el usuario queda verificado inmediatamente.
+      tokenVerificacion: null,
     });
 
     if (!user) {
@@ -101,7 +98,7 @@ export class RegistrationService {
     return {
       message: 'Cuenta creada.',
       user,
-      emailVerified: false,
+      emailVerified: true,
     };
   }
 }
