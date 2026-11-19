@@ -1,11 +1,9 @@
 
 import { Controller, Get } from '@nestjs/common';
 
-import {
-  listarMetodosPago,
-  listarOpcionesGenero,
-} from '../database/queries.js';
+import { listarMetodosPago, listarOpcionesGenero } from '../database/queries.js';
 
+// catálogos que la app móvil necesita sin sesión (por ejemplo, en el registro)
 @Controller('catalogs')
 export class PublicCatalogsController {
 
@@ -15,11 +13,13 @@ export class PublicCatalogsController {
     return listarMetodosPago(true);
   }
 
-   // GET /api/catalogs/genders: opciones activas para el registro y "Mi Perfil"
+  // GET /api/catalogs/genders: opciones de género activas (registro y perfil)
   @Get('genders')
   async listarGeneros() {
     const opciones = await listarOpcionesGenero(true);
-    return opciones.map(({ id, nombre }) => ({ id, nombre }));
+    return opciones
+      .filter((opcion) => opcion.nombre)
+      .map((opcion) => ({ id: opcion.id, nombre: opcion.nombre as string }));
   }
 
 }

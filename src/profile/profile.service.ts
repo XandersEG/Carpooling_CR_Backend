@@ -1,99 +1,119 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
-import {
-  actualizarPerfil,
-  db,
-  obtenerPerfilUsuario,
-} from '../database/queries.js';
-import { catalogoOpcionesDeGenero } from '../database/schemas.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import {
+  buscarGeneroPorNombre,
+  buscarLugaresFrecuentes,
+  buscarPerfil,
+  contarViajesActivosDeConductor,
+  guardarPerfil,
+} from './profile.queries.js';
 
-type Rol = 'conductor' | 'pasajero';
+type Perfil = NonNullable<Awaited<ReturnType<typeof buscarPerfil>>>;
 
-// el esquema guarda solo es_conductor: todo usuario puede viajar como pasajero
-function rolesDe(esConductor: boolean): Rol[] {
-  return esConductor ? ['conductor', 'pasajero'] : ['pasajero'];
-}
-
-// fecha de hoy en Costa Rica, en el mismo formato que fecha_nacimiento (AAAA-MM-DD)
-function hoy(): string {
+function hoyEnCostaRica(): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Costa_Rica',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date());
 }
 
-// perfil del usuario de la app móvil: consultarlo y editar sus datos. autor: Juan Carlos Monsalve, 2026-11-19
+// perfil del usuario que tiene la sesión abierta
 @Injectable()
 export class ProfileService {
   async obtener(usuarioId: number) {
-    const perfil = await obtenerPerfilUsuario(usuarioId);
+    const perfil = await buscarPerfil(usuarioId);
     if (!perfil) {
-      throw new UnauthorizedException(
-        'Tu sesión venció. Inicia sesión de nuevo.',
-      );
+      throw new UnauthorizedException('Tu sesión venció. Inicia sesión de nuevo.');
     }
-    return { ...perfil, roles: rolesDe(perfil.esConductor) };
+    return this.respuesta(perfil);
   }
 
   async actualizar(usuarioId: number, dto: UpdateProfileDto) {
-    const cambios: Parameters<typeof actualizarPerfil>[1] = {};
+    const cambios: Parameters<typeof guardarPerfil>[1] = {};
 
-    if (dto.fullName !== undefined) {
-      // mismo criterio que el registro: la primera palabra es el nombre y el resto los apellidos
-      const [nombre, ...resto] = dto.fullName.split(/\s+/);
+    if (dto.nombreCompleto !== undefined) {
+      const [nombre, ...resto] = dto.nombreCompleto.split(/\s+/);
       const apellidos = resto.join(' ');
       if (nombre.length > 100 || apellidos.length > 150) {
-        throw new BadRequestException(
-          'El nombre o los apellidos exceden el tamaño permitido.',
-        );
+        throw new BadRequestException('El nombre o los apellidos son demasiado largos.');
       }
       cambios.nombre = nombre;
       cambios.apellidos = apellidos;
     }
 
-    if (dto.gender !== undefined) {
-      cambios.generoId = await this.idDelGenero(dto.gender);
+    if (dto.genero !== undefined) {
+      const genero = await buscarGeneroPorNombre(dto.genero);
+      if (!genero) {
+        throw new BadRequestException('Selecciona una opción de género activa y válida.');
+      }
+      cambios.generoId = genero.id;
     }
 
-    if (dto.birthDate !== undefined) {
-      if (dto.birthDate > hoy() || dto.birthDate < '1900-01-01') {
-        throw new BadRequestException(
-          'Ingresa una fecha de nacimiento válida.',
-        );
+    if (dto.fechaNacimiento !== undefined) {
+      if (dto.fechaNacimiento > hoyEnCostaRica() || dto.fechaNacimiento < '1900-01-01') {
+        throw new BadRequestException('La fecha de nacimiento no es válida.');
       }
-      cambios.fechaNacimiento = dto.birthDate;
+      cambios.fechaNacimiento = dto.fechaNacimiento;
     }
 
     if (dto.roles !== undefined) {
-      cambios.esConductor = dto.roles.includes('conductor');
+      const esConductor = dto.roles.includes('conductor');
+      // dejar de ser conductor con viajes pendientes dejaría pasajeros sin viaje
+      if (!esConductor && (await contarViajesActivosDeConductor(usuarioId)) > 0) {
+        throw new ConflictException(
+          'Tienes viajes publicados sin finalizar. Finalízalos o cancélalos antes de quitar el rol de conductor.',
+        );
+      }
+      cambios.esConductor = esConductor;
     }
 
-    if (Object.keys(cambios).length > 0) {
-      await actualizarPerfil(usuarioId, cambios);
+    if (dto.telefono !== undefined) {
+      cambios.telefono = dto.telefono;
+    }
+
+    if (Object.keys(cambios).length === 0) {
+      throw new BadRequestException('No hay cambios para guardar.');
+    }
+
+    const actualizado = await guardarPerfil(usuarioId, cambios);
+    if (!actualizado) {
+      throw new UnauthorizedException('Tu sesión venció. Inicia sesión de nuevo.');
     }
     return this.obtener(usuarioId);
   }
 
-  // id de una opción de género activa, buscada por nombre sin importar mayúsculas
-  private async idDelGenero(nombre: string): Promise<number> {
-    const opciones = await db
-      .select({ id: catalogoOpcionesDeGenero.id })
-      .from(catalogoOpcionesDeGenero)
-      .where(
-        and(
-          sql`lower(${catalogoOpcionesDeGenero.nombre}) = ${nombre.toLowerCase()}`,
-          eq(catalogoOpcionesDeGenero.activo, true),
-        ),
-      );
-    if (opciones.length !== 1) {
-      throw new BadRequestException(
-        'Selecciona una opción de género activa y válida.',
-      );
-    }
-    return opciones[0].id;
+  async lugaresFrecuentes(usuarioId: number) {
+    const lugares = await buscarLugaresFrecuentes(usuarioId);
+    return lugares.map((lugar, indice) => ({ id: indice + 1, ...lugar }));
+  }
+
+  private respuesta(perfil: Perfil) {
+    // todo usuario puede viajar como pasajero; el rol de conductor se guarda en es_conductor
+    const roles: ('conductor' | 'pasajero')[] = perfil.esConductor
+      ? ['conductor', 'pasajero']
+      : ['pasajero'];
+    return {
+      id: perfil.id,
+      nombre: perfil.nombre,
+      apellidos: perfil.apellidos,
+      nombreCompleto: `${perfil.nombre} ${perfil.apellidos}`.trim(),
+      correo: perfil.correo,
+      telefono: perfil.telefono,
+      fotoUrl: perfil.fotoUrl,
+      fechaNacimiento: perfil.fechaNacimiento,
+      genero: perfil.genero ?? '',
+      institucion: perfil.institucion,
+      esConductor: perfil.esConductor,
+      roles,
+      correoVerificado: perfil.correoVerificado,
+      miembroDesde: perfil.creadoEn,
+    };
   }
 }

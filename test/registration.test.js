@@ -11,13 +11,13 @@ import {
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import request from 'supertest';
-import { scrypt } from 'node:crypto';
-import { promisify } from 'node:util';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { RegistrationController } from '../dist/auth/registration.controller.js';
 import { RegistrationService } from '../dist/auth/registration.service.js';
 import { RegistrationRepository } from '../dist/auth/registration.repository.js';
 import { PasswordService } from '../dist/auth/password.service.js';
+import { MailService } from '../dist/admin/mail.service.js';
 
 // Impide abrir conexiones reales durante estas pruebas.
 vi.mock('../dist/database/queries.js', () => ({
@@ -44,12 +44,19 @@ const passwords = {
   hash: vi.fn(),
 };
 
+const mail = {
+  enviar: vi.fn(),
+};
+
 let app;
 
 beforeAll(async () => {
   class TestModule {}
 
   Module({
+    imports: [
+      ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 1000 }] }),
+    ],
     controllers: [RegistrationController],
     providers: [
       RegistrationService,
@@ -60,6 +67,10 @@ beforeAll(async () => {
       {
         provide: PasswordService,
         useValue: passwords,
+      },
+      {
+        provide: MailService,
+        useValue: mail,
       },
     ],
   })(TestModule);
@@ -93,6 +104,7 @@ beforeEach(() => {
   }));
 
   passwords.hash.mockResolvedValue('hashed-password');
+  mail.enviar.mockResolvedValue(undefined);
 });
 
 const post = (body) =>
@@ -111,7 +123,8 @@ describe('Registro móvil: endpoint HTTP', () => {
     expect(response.status).toBe(201);
 
     expect(response.body).toEqual({
-      message: 'Cuenta creada.',
+      message:
+        'Cuenta creada. Revisa tu correo institucional para verificar la cuenta.',
       user: {
         id: 10,
         email: valid.email,
@@ -132,6 +145,14 @@ describe('Registro móvil: endpoint HTTP', () => {
         fechaAceptacionTerminos: expect.any(Date),
         tokenVerificacion:
           expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+    );
+
+    // el enlace de verificación llega al correo institucional
+    expect(mail.enviar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        para: valid.email,
+        texto: expect.stringContaining('/api/auth/verify-email?token='),
       }),
     );
   });
@@ -234,7 +255,7 @@ describe('Registro móvil: endpoint HTTP', () => {
 });
 
 describe('PasswordService', () => {
-  it('genera hashes distintos y verificables', async () => {
+  it('genera hashes distintos que el inicio de sesión puede verificar', async () => {
     const service = new PasswordService();
 
     const first = await service.hash(valid.password);
@@ -242,24 +263,10 @@ describe('PasswordService', () => {
 
     expect(first).not.toBe(second);
     expect(first.length).toBeLessThanOrEqual(255);
+    // mismo formato que PasswordHasher, que usa AuthService al iniciar sesión
+    expect(first).toMatch(/^\$scrypt\$ln=\d+,r=\d+,p=\d+\$/);
 
-    const [algorithm, n, r, p, salt, hash] =
-      first.split('$');
-
-    expect(algorithm).toBe('scrypt');
-
-    const derived = await promisify(scrypt)(
-      valid.password,
-      salt,
-      64,
-      {
-        N: Number(n),
-        r: Number(r),
-        p: Number(p),
-        maxmem: 256 * 1024 * 1024,
-      },
-    );
-
-    expect(derived.toString('hex')).toBe(hash);
+    expect(await service.verify(valid.password, first)).toBe(true);
+    expect(await service.verify('otra-clave-123', first)).toBe(false);
   });
 });

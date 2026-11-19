@@ -14,12 +14,13 @@ import { TripsModule } from '../trips/trips.module.js';
 import { PassengerRequestsModule } from '../passenger-requests/passenger-requests.module.js';
 import { DriverRequestsModule } from '../driver-requests/driver-requests.module.js';
 import { PublicCatalogsModule } from '../catalogs/public-catalogs.module.js';
-import { ProfileModule } from '../profile/profile.module.js';
 import { ViajeModule } from '../viajes/viaje.module.js';
 import { ConcurrentPointsModule } from '../concurrent-points/concurrent-points.module.js';
 
 import { ConfigModule } from '@nestjs/config';
 import { RegistrationModule } from '../auth/registration.module.js';
+import { ProfileModule } from '../profile/profile.module.js';
+import { HistoryModule } from '../history/history.module.js';
 
 @Module({
   imports: [
@@ -29,7 +30,6 @@ import { RegistrationModule } from '../auth/registration.module.js';
     AdminModule,
     RegistrationModule,
     AuthModule,
-    ProfileModule,
     ConsultasModule,
     StatisticsModule,
     TripsModule,
@@ -41,6 +41,8 @@ import { RegistrationModule } from '../auth/registration.module.js';
     PassengerTripsModule,
     ConcurrentPointsModule,
     ConsultasAdminModule,
+    ProfileModule,
+    HistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

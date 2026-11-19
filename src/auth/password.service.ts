@@ -1,32 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { randomBytes, scrypt } from 'node:crypto';
+import { PasswordHasher } from '@nestjs/authentication';
 
+/**
+ * Hash de contraseñas de los usuarios de la app.
+ *
+ * Usa el mismo `PasswordHasher` (scrypt, formato `$scrypt$ln=17,r=8,p=1$...`) con el
+ * que `AuthService` comprueba la contraseña al iniciar sesión. Antes este servicio
+ * generaba su propio formato (`scrypt$131072$...`) y las cuentas creadas desde el
+ * registro nunca podían iniciar sesión.
+ */
 @Injectable()
 export class PasswordService {
-  async hash(password: string): Promise<string> {
-    const salt = randomBytes(16).toString('hex');
+  private readonly hasher = new PasswordHasher();
 
-    const key = await new Promise<Buffer>((resolve, reject) => {
-      scrypt(
-        password,
-        salt,
-        64,
-        {
-          N: 131072,
-          r: 8,
-          p: 1,
-          maxmem: 256 * 1024 * 1024,
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        },
-      );
-    });
+  hash(password: string): Promise<string> {
+    return this.hasher.hash(password);
+  }
 
-    return `scrypt$131072$8$1$${salt}$${key.toString('hex')}`;
+  verify(password: string, hash: string | null | undefined): Promise<boolean> {
+    return this.hasher.verify(password, hash);
   }
 }
