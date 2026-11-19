@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AdminModule } from '../admin/admin.module.js';
+import { ConsultasAdminModule } from '../admin/consultas-admin.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -26,7 +27,8 @@ import { ConcurrentPointsModule } from '../concurrent-points/concurrent-points.m
     PublicCatalogsModule,
     ViajeModule,
     PassengerTripsModule,
-    ConcurrentPointsModule
+    ConcurrentPointsModule,
+    ConsultasAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
