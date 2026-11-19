@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, gt, gte, lt, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, ilike, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '../database/queries.js';
 import {
   institucionTable,
@@ -8,9 +8,66 @@ import {
 } from '../database/schemas.js';
 
 type FiltrosMonto = { institucionId?: number; desde?: string; hasta?: string };
+type FiltrosTopConductores = {
+  top: number;
+  institucionId?: number;
+  buscar?: string;
+};
 
 @Injectable()
 export class ConsultasAdminService {
+  async topConductores(filtros: FiltrosTopConductores) {
+    const condiciones = and(
+      isNotNull(viajeTable.fechaFinReal),
+      isNull(viajeTable.motivoCancelacion),
+      filtros.institucionId === undefined
+        ? undefined
+        : eq(usuarioTable.institucionId, filtros.institucionId),
+      filtros.buscar
+        ? ilike(
+            sql`${usuarioTable.nombre} || ' ' || ${usuarioTable.apellidos}`,
+            `%${filtros.buscar}%`,
+          )
+        : undefined,
+    );
+
+    const [conductores, [total]] = await Promise.all([
+      db
+        .select({
+          conductorId: usuarioTable.id,
+          conductor: sql<string>`${usuarioTable.nombre} || ' ' || ${usuarioTable.apellidos}`,
+          institucion: institucionTable.nombre,
+          viajesFinalizados: count(viajeTable.id),
+        })
+        .from(viajeTable)
+        .innerJoin(usuarioTable, eq(viajeTable.conductorId, usuarioTable.id))
+        .innerJoin(institucionTable, eq(usuarioTable.institucionId, institucionTable.id))
+        .where(condiciones)
+        .groupBy(
+          usuarioTable.id,
+          usuarioTable.nombre,
+          usuarioTable.apellidos,
+          institucionTable.nombre,
+        )
+        .orderBy(
+          desc(count(viajeTable.id)),
+          asc(usuarioTable.nombre),
+          asc(usuarioTable.apellidos),
+          asc(usuarioTable.id),
+        )
+        .limit(filtros.top),
+      db
+        .select({
+          total: sql<number>`count(distinct ${usuarioTable.id})::int`,
+        })
+        .from(viajeTable)
+        .innerJoin(usuarioTable, eq(viajeTable.conductorId, usuarioTable.id))
+        .where(condiciones),
+    ]);
+
+    return { conductores, totalConductores: total?.total ?? 0 };
+  }
+
   async montoPromedio(filtros: FiltrosMonto) {
     // Institución del conductor; fechas de salida programada, con ambos días incluidos.
     const condiciones = and(
