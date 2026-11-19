@@ -29,19 +29,13 @@ const idDeVehiculo = new ParseIntPipe({
 @UseGuards(UserGuard)
 @UsePipes(validacion)
 export class VehiclesController {
-  constructor(
-    private readonly vehiclesService: VehiclesService,
-  ) {}
+  constructor(private readonly vehiclesService: VehiclesService) {}
 
-  // GET /api/driver/vehicles
   @Get()
   listar(@Req() peticion: PeticionDeUsuario) {
-    return this.vehiclesService.listar(
-      peticion.usuarioId,
-    );
+    return this.vehiclesService.listar(peticion.usuarioId);
   }
 
-  // GET /api/driver/vehicles/:id
   @Get(':id')
   buscarPorId(
     @Param('id', idDeVehiculo) id: number,
@@ -53,7 +47,6 @@ export class VehiclesController {
     );
   }
 
-  // POST /api/driver/vehicles
   @Post()
   crear(
     @Body() dto: CreateVehicleDto,
@@ -65,7 +58,6 @@ export class VehiclesController {
     );
   }
 
-  // PATCH /api/driver/vehicles/:id
   @Patch(':id')
   actualizar(
     @Param('id', idDeVehiculo) id: number,
@@ -79,7 +71,6 @@ export class VehiclesController {
     );
   }
 
-  // DELETE /api/driver/vehicles/:id
   @Delete(':id')
   @HttpCode(204)
   eliminar(
@@ -92,7 +83,6 @@ export class VehiclesController {
     );
   }
 
-  // PATCH /api/driver/vehicles/:id/activate
   @Patch(':id/activate')
   activar(
     @Param('id', idDeVehiculo) id: number,
