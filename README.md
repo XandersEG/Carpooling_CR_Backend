@@ -592,7 +592,7 @@ Se recomienda configurar Branch Protection Rules en GitHub para impedir pushes d
 
 ## 12. Portal administrativo (módulo 5)
 
-El código del portal está en `src/admin/`: un módulo con seis controllers (sesión, recuperar contraseña, parámetros, instituciones, usuarios y administradores), sus services, los DTO en `dto/` y las consultas en `admin.queries.ts`, que usan la conexión y las tablas de `src/database/`.
+El código del portal está en `src/admin/`: sesión, parámetros, instituciones, usuarios y administradores. Las consultas generales del portal están en `src/consultas/`, con su controller, service, DTO y consultas Drizzle; ambos módulos usan las tablas de `src/database/`.
 
 | Método | Ruta | Qué hace |
 |---|---|---|
@@ -605,12 +605,13 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 | POST | `/api/admin/catalogs/:catalogo/values` | Crea un parámetro. |
 | PATCH | `/api/admin/catalogs/:catalogo/values/:valueId` | Cambia el nombre, el estado o los campos propios. |
 | DELETE | `/api/admin/catalogs/:catalogo/values/:valueId` | Borra un parámetro que nadie usa. |
-| GET | `/api/admin/institutions` | Lista de instituciones. |
-| POST | `/api/admin/institutions` | Registra una institución. |
-| PATCH | `/api/admin/institutions/:id` | Cambia nombre, dominio o estado. |
+| GET | `/api/admin/institutions` | Lista de instituciones, con su `acronimo` (`null` si no tiene). |
+| POST | `/api/admin/institutions` | Registra una institución (`nombre`, `dominioCorreo` y, si se quiere, `acronimo`). |
+| PATCH | `/api/admin/institutions/:id` | Cambia nombre, acrónimo, dominio o estado. |
 | GET | `/api/admin/users` | Usuarios por página (`buscar`, `institucionId`, `pagina`). |
 | GET | `/api/admin/users/:id` | Detalle con vehículos y actividad. |
 | PATCH | `/api/admin/users/:id` | Cambia nombre, apellidos, teléfono o estado. |
+| GET | `/api/admin/consultas/usuarios-nuevos` | Usuarios nuevos (`meses`, `institucionId`, `buscar`), totales y registros por mes. |
 | GET | `/api/admin/administrators` | Lista de administradores, sin la contraseña. |
 | POST | `/api/admin/administrators` | Registra un administrador (`nombre`, `correo`, `password`). |
 | PATCH | `/api/admin/administrators/:id` | Cambia nombre, correo, contraseña o estado de la cuenta propia. |
@@ -624,6 +625,17 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 | `rangos-edad` | `catalogoRangosDeEdad` | `edadMinima`, `edadMaxima` |
 | `opciones-genero` | `catalogoOpcionesDeGenero` | ninguno |
 | `reglas-tarifas` | `catalogoReglasYTarifas` | `valor`, `unidad`, `descripcion` |
+
+### Acrónimo de las instituciones
+
+Cada institución puede guardar un acrónimo (TEC, UCR, UNA), que es el que muestran las consultas y estadísticas. La regla está en `institutions.service.ts`:
+
+- Es opcional. Si no se envía al registrar, o llega vacío, la institución queda sin acrónimo (`null`). Al editar, enviarlo vacío se lo quita.
+- Cuando se envía, tiene de 2 a 10 letras o números, sin espacios ni tildes. Se guarda en mayúsculas aunque llegue en minúsculas: "tec" queda como "TEC". Si no cumple, la respuesta es 400, "El acrónimo no es válido. Usa de 2 a 10 letras o números, sin espacios ni tildes."
+- No puede repetirse, tampoco con el de una institución inactiva: la respuesta es 409, "Ya existe una institución con el acrónimo "TEC"." Varias instituciones pueden estar sin acrónimo.
+- Activar o desactivar una institución no cambia su acrónimo.
+
+La columna `acronimo` ya existe en la base de datos, pero `src/database/schemas.ts` todavía no la declara. Mientras tanto, `admin.queries.ts` declara la tabla `institucion` con esa columna (`institucionConAcronimo`) y la usa en las consultas de instituciones del portal. En esa declaración cada columna lleva su nombre escrito (`integer('id')`, `varchar('acronimo')`): Drizzle guarda los nombres de las columnas por nombre de tabla y, sin eso, las consultas del portal responden 500 cuando otra consulta usó antes `institucionTable`. Cuando la columna entre a `schemas.ts`, esa declaración se quita y las consultas vuelven a usar `institucionTable`.
 
 ### Sesión de administrador
 
@@ -685,7 +697,7 @@ Sin `SMTP_USER` y `SMTP_PASS` el correo no se envía: queda escrito en la termin
 
 Notas:
 
-- Las respuestas usan los mismos nombres que las tablas (`nombre`, `dominioCorreo`, `activo`). El estado de parámetros, instituciones, usuarios y administradores es siempre el campo `activo`.
+- Las respuestas usan los mismos nombres que las tablas (`nombre`, `acronimo`, `dominioCorreo`, `activo`). El estado de parámetros, instituciones, usuarios y administradores es siempre el campo `activo`.
 - Cuando un dato no es válido o una regla no se cumple, la respuesta trae un mensaje en español, listo para mostrar en el portal.
 - La validación de los datos de entrada (`class-validator`) se aplica solo a estas rutas, con `@UsePipes(validacion)` en cada controller.
 - El límite de intentos cuenta por dirección IP. Si el back end se publica detrás de un proxy, hay que activar `trust proxy` en Express; si no, todos los visitantes cuentan como uno solo.
