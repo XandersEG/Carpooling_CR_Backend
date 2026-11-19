@@ -44,14 +44,41 @@ export class PassengerTripsService {
         'Indica la latitud y la longitud del origen juntas.',
       );
     }
+    if ((filtros.destinoLat === undefined) !== (filtros.destinoLng === undefined)) {
+      throw new BadRequestException(
+        'Indica la latitud y la longitud del destino juntas.',
+      );
+    }
+    if (filtros.desde && filtros.hasta && filtros.desde > filtros.hasta) {
+      throw new BadRequestException(
+        'La fecha inicial debe ser anterior a la final.',
+      );
+    }
+    // past trips are never listed: the window starts now at the earliest
+    const ahora = new Date();
+    const desde =
+      filtros.desde && filtros.desde > ahora ? filtros.desde : ahora;
+
     const viajes = await buscarViajesDisponibles({
+      desde,
+      hasta: filtros.hasta,
       origenLat: filtros.origenLat,
       origenLng: filtros.origenLng,
       radioGrados: filtros.radioGrados,
+      destinoLat: filtros.destinoLat,
+      destinoLng: filtros.destinoLng,
       destinoNombre: filtros.destinoNombre,
       excluirConductorId: pasajeroId,
     });
-    return viajes.map((viaje) => ({ ...viaje, costo: Number(viaje.costo) }));
+    // decimal columns come back as text
+    return viajes.map((viaje) => ({
+      ...viaje,
+      costo: Number(viaje.costo),
+      origenLat: Number(viaje.origenLat),
+      origenLng: Number(viaje.origenLng),
+      destinoLat: Number(viaje.destinoLat),
+      destinoLng: Number(viaje.destinoLng),
+    }));
   }
 
   // detalle con la ruta y, si ya pidió unirse, la solicitud del pasajero
