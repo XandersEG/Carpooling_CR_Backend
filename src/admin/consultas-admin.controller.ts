@@ -46,4 +46,27 @@ export class ConsultasAdminController {
     }
     return this.consultas.montoPromedio({ institucionId, desde, hasta });
   }
+
+  @Get('top-conductores')
+  topConductores(
+    @Query('top', new ParseIntPipe({ optional: true })) top?: number,
+    @Query('institucionId', new ParseIntPipe({ optional: true })) institucionId?: number,
+    @Query('buscar') buscar?: string,
+  ) {
+    const limite = top ?? 5;
+    if (limite < 1 || limite > 20) {
+      throw new BadRequestException('top debe estar entre 1 y 20.');
+    }
+    if (institucionId !== undefined && institucionId <= 0) {
+      throw new BadRequestException('institucionId debe ser positivo.');
+    }
+    if (buscar !== undefined && buscar.trim().length > 100) {
+      throw new BadRequestException('buscar no puede tener más de 100 caracteres.');
+    }
+    return this.consultas.topConductores({
+      top: limite,
+      institucionId,
+      buscar: buscar?.trim(),
+    });
+  }
 }
