@@ -13,6 +13,7 @@ import {
   isNotNull,
   isNull,
   lt,
+  lte,
   ne,
   or,
   sql,
@@ -766,14 +767,20 @@ export async function crearViaje(datos: DatosNuevoViaje) {
 export async function buscarViajesDisponibles(
   filtros: {
     desde?: Date;
+    /** Latest departure to include (optional). */
+    hasta?: Date;
     origenLat?: number;
     origenLng?: number;
     radioGrados?: number;
+    /** Destination point; uses the same radius as the origin. */
+    destinoLat?: number;
+    destinoLng?: number;
     destinoNombre?: string;
     excluirConductorId?: number;
   } = {},
 ) {
   const conductor = alias(usuarioTable, 'conductor');
+  const r = filtros.radioGrados ?? 0.05;
 
   const condiciones: SQL[] = [
     viajeProgramadoSql,
@@ -781,11 +788,21 @@ export async function buscarViajesDisponibles(
     gte(viajeTable.fechaHoraSalida, filtros.desde ?? new Date()),
   ];
 
+  if (filtros.hasta) {
+    condiciones.push(lte(viajeTable.fechaHoraSalida, filtros.hasta));
+  }
+
   if (filtros.origenLat !== undefined && filtros.origenLng !== undefined) {
-    const r = filtros.radioGrados ?? 0.05;
     condiciones.push(
       between(viajeTable.origenLat, String(filtros.origenLat - r), String(filtros.origenLat + r)),
       between(viajeTable.origenLng, String(filtros.origenLng - r), String(filtros.origenLng + r)),
+    );
+  }
+
+  if (filtros.destinoLat !== undefined && filtros.destinoLng !== undefined) {
+    condiciones.push(
+      between(viajeTable.destinoLat, String(filtros.destinoLat - r), String(filtros.destinoLat + r)),
+      between(viajeTable.destinoLng, String(filtros.destinoLng - r), String(filtros.destinoLng + r)),
     );
   }
 
@@ -802,6 +819,11 @@ export async function buscarViajesDisponibles(
       id: viajeTable.id,
       origen: viajeTable.origenNombre,
       destino: viajeTable.destinoNombre,
+      // coordinates so the app can draw the results on a map
+      origenLat: viajeTable.origenLat,
+      origenLng: viajeTable.origenLng,
+      destinoLat: viajeTable.destinoLat,
+      destinoLng: viajeTable.destinoLng,
       salida: viajeTable.fechaHoraSalida,
       cuposDisponibles: viajeTable.cuposDisponibles,
       costo: viajeTable.costo,
