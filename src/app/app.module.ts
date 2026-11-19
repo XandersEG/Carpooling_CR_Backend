@@ -11,6 +11,7 @@ import { PassengerRequestsModule } from '../passenger-requests/passenger-request
 import { VehiclesModule } from '../vehicles/vehicles.module.js';
 import { PublicCatalogsModule } from '../catalogs/public-catalogs.module.js';
 import { ViajeModule } from '../viajes/viaje.module.js';
+import { ConcurrentPointsModule } from '../concurrent-points/concurrent-points.module.js';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { ViajeModule } from '../viajes/viaje.module.js';
     VehiclesModule,
     PublicCatalogsModule,
     ViajeModule,
-    PassengerTripsModule
+    PassengerTripsModule,
+    ConcurrentPointsModule
   ],
   controllers: [AppController],
   providers: [AppService],
