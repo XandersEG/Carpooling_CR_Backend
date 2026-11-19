@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import {
   and,
@@ -35,7 +36,19 @@ import {
   viajeTable,
 } from './schemas.js';
 
-export const db = drizzle(process.env.DATABASE_URL!);
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL no está configurado en las variables de entorno');
+}
+
+const client = postgres(databaseUrl, {
+  prepare: false,
+  max: 3,
+  idle_timeout: 20,
+});
+
+export const db = drizzle(client);
 
 /* -------------------------------------------------------------------------- */
 /*  ESTADOS DERIVADOS                                                         */
