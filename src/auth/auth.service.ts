@@ -37,12 +37,7 @@ export class AuthService {
     if (!usuario || !coincide || !usuario.activo) {
       throw new UnauthorizedException(DATOS_INCORRECTOS);
     }
-    // token_verificacion con valor = correo pendiente de verificar. se avisa solo a quien ya acertó la contraseña
-    if (usuario.tokenVerificacion !== null) {
-      throw new ForbiddenException(
-        'Verifica tu correo institucional antes de iniciar sesión.',
-      );
-    }
+  
 
     // el token viaja una sola vez a la app; en la base queda solo su huella
     const token = randomBytes(32).toString('base64url');

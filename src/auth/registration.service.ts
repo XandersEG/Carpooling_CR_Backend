@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
 
 import type { RegisterDto } from './dto/register.dto.js';
 import { RegistrationRepository } from './registration.repository.js';
@@ -86,8 +85,8 @@ export class RegistrationService {
       fechaAceptacionTerminos:
         input.acceptedTerms ? new Date() : null,
 
-      // Mientras tenga valor, el correo queda pendiente de verificación.
-      tokenVerificacion: randomBytes(32).toString('hex'),
+      // Prototipo: el usuario queda verificado inmediatamente.
+      tokenVerificacion: null,
     });
 
     if (!user) {
@@ -99,7 +98,7 @@ export class RegistrationService {
     return {
       message: 'Cuenta creada.',
       user,
-      emailVerified: false,
+      emailVerified: true,
     };
   }
 }
