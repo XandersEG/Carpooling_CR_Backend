@@ -7,6 +7,7 @@ import {
 import {
   actualizarInstitucion,
   buscarInstitucion,
+  buscarInstitucionConAcronimo,
   buscarInstitucionConDominio,
   insertarInstitucion,
   listarInstituciones,
@@ -18,6 +19,8 @@ import {
 } from './dto/institution.dto.js';
 
 const DOMINIO_VALIDO = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+// de 2 a 10 letras o números, sin espacios ni tildes
+const ACRONIMO_VALIDO = /^[A-ZÑ0-9]{2,10}$/;
 
 // deja solo el dominio, en minúsculas: "ana@UCR.ac.cr" queda como "ucr.ac.cr"
 function normalizarDominio(texto: string): string {
@@ -33,13 +36,14 @@ export class InstitutionsService {
     return listarInstituciones();
   }
 
-  // registra una institución con un dominio que no esté en uso. autor: kaleb lizano, 2026-11-13
+  // registra una institución con un acrónimo y un dominio que no estén en uso. autor: kaleb lizano, 2026-11-13
   async crear(dto: CreateInstitutionDto) {
+    const acronimo = await this.acronimoLibre(dto.acronimo);
     const dominioCorreo = await this.dominioLibre(dto.dominioCorreo);
-    return insertarInstitucion({ nombre: dto.nombre, dominioCorreo });
+    return insertarInstitucion({ nombre: dto.nombre, acronimo, dominioCorreo });
   }
 
-  // cambia nombre, dominio o estado; sirve para activar y desactivar. autor: kaleb lizano, 2026-11-13
+  // cambia nombre, acrónimo, dominio o estado; sirve para activar y desactivar. autor: kaleb lizano, 2026-11-13
   async actualizar(id: number, dto: UpdateInstitutionDto) {
     const institucion = await buscarInstitucion(id);
     if (!institucion) {
@@ -49,6 +53,10 @@ export class InstitutionsService {
     const cambios = {
       nombre: dto.nombre,
       activo: dto.activo,
+      acronimo:
+        dto.acronimo === undefined
+          ? undefined
+          : await this.acronimoLibre(dto.acronimo, id),
       dominioCorreo:
         dto.dominioCorreo === undefined
           ? undefined
@@ -57,6 +65,23 @@ export class InstitutionsService {
     return sinCambios(cambios)
       ? institucion
       : actualizarInstitucion(id, cambios);
+  }
+
+  // devuelve el acrónimo en mayúsculas, o falla si es inválido o ya es de otra institución
+  private async acronimoLibre(texto: string, idPropio?: number) {
+    const acronimo = texto.toUpperCase();
+    if (!ACRONIMO_VALIDO.test(acronimo)) {
+      throw new BadRequestException(
+        'El acrónimo no es válido. Usa de 2 a 10 letras o números, sin espacios ni tildes.',
+      );
+    }
+    const existente = await buscarInstitucionConAcronimo(acronimo);
+    if (existente && existente.id !== idPropio) {
+      throw new ConflictException(
+        `Ya existe una institución con el acrónimo "${acronimo}".`,
+      );
+    }
+    return acronimo;
   }
 
   // devuelve el dominio normalizado, o falla si es inválido o ya es de otra institución
