@@ -20,6 +20,12 @@ export class CreateInstitutionDto {
   })
   nombre: string;
 
+  // el formato y que no se repita se revisan en el servicio
+  @Transform(recortar)
+  @IsString({ message: 'El acrónimo debe ser un texto.' })
+  @IsNotEmpty({ message: 'El acrónimo es obligatorio.' })
+  acronimo: string;
+
   @Transform(recortar)
   @IsString({ message: 'El dominio de correo debe ser un texto.' })
   @IsNotEmpty({ message: 'El dominio de correo es obligatorio.' })
@@ -39,6 +45,12 @@ export class UpdateInstitutionDto {
     message: 'El nombre no puede tener más de 150 caracteres.',
   })
   nombre?: string;
+
+  @SiSeEnvia()
+  @Transform(recortar)
+  @IsString({ message: 'El acrónimo debe ser un texto.' })
+  @IsNotEmpty({ message: 'El acrónimo es obligatorio.' })
+  acronimo?: string;
 
   @SiSeEnvia()
   @Transform(recortar)

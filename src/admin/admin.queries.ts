@@ -1,4 +1,11 @@
 import { and, asc, eq, gt, like, or, sql, type SQLWrapper } from 'drizzle-orm';
+import {
+  boolean,
+  integer,
+  pgTable,
+  timestamp,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { db } from '../database/queries.js';
 import {
   administradorTable,
@@ -156,19 +163,33 @@ export async function borrarValor(tabla: TablaCatalogo, id: number) {
 
 /* ---------------------------- instituciones ---------------------------- */
 
+// la columna acronimo ya existe en la base, pero schemas.ts todavía no la tiene: el portal declara aquí la tabla con ella
+const institucionConAcronimo = pgTable('institucion', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar({ length: 150 }).notNull(),
+  acronimo: varchar(),
+  dominioCorreo: varchar('dominio_correo', { length: 150 }).notNull().unique(),
+  activo: boolean().notNull().default(true),
+  creadoEn: timestamp('creado_en').notNull().defaultNow(),
+  actualizadoEn: timestamp('actualizado_en')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
 // todas las instituciones, activas e inactivas
 export function listarInstituciones() {
   return db
     .select()
-    .from(institucionTable)
-    .orderBy(asc(institucionTable.nombre));
+    .from(institucionConAcronimo)
+    .orderBy(asc(institucionConAcronimo.nombre));
 }
 
 export async function buscarInstitucion(id: number) {
   const [institucion] = await db
     .select()
-    .from(institucionTable)
-    .where(eq(institucionTable.id, id));
+    .from(institucionConAcronimo)
+    .where(eq(institucionConAcronimo.id, id));
   return institucion ?? null;
 }
 
@@ -180,27 +201,42 @@ export async function buscarInstitucionConDominio(dominio: string) {
   return institucion ?? null;
 }
 
+// recibe el acrónimo en mayúsculas y lo compara sin distinguir mayúsculas de minúsculas
+export async function buscarInstitucionConAcronimo(acronimo: string) {
+  const [institucion] = await db
+    .select({ id: institucionConAcronimo.id })
+    .from(institucionConAcronimo)
+    .where(eq(sql`upper(${institucionConAcronimo.acronimo})`, acronimo));
+  return institucion ?? null;
+}
+
 // registra una institución
 export async function insertarInstitucion(datos: {
   nombre: string;
+  acronimo: string;
   dominioCorreo: string;
 }) {
   const [institucion] = await db
-    .insert(institucionTable)
+    .insert(institucionConAcronimo)
     .values(datos)
     .returning();
   return institucion;
 }
 
-// cambia nombre, dominio o estado de una institución
+// cambia nombre, acrónimo, dominio o estado de una institución
 export async function actualizarInstitucion(
   id: number,
-  cambios: { nombre?: string; dominioCorreo?: string; activo?: boolean },
+  cambios: {
+    nombre?: string;
+    acronimo?: string;
+    dominioCorreo?: string;
+    activo?: boolean;
+  },
 ) {
   const [institucion] = await db
-    .update(institucionTable)
+    .update(institucionConAcronimo)
     .set(cambios)
-    .where(eq(institucionTable.id, id))
+    .where(eq(institucionConAcronimo.id, id))
     .returning();
   return institucion;
 }
