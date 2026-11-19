@@ -404,7 +404,10 @@ export async function obtenerPerfilUsuario(usuarioId: number) {
 export async function actualizarPerfil(
   usuarioId: number,
   cambios: Partial<
-    Pick<typeof usuarioTable.$inferInsert, 'nombre' | 'apellidos' | 'telefono' | 'fotoUrl' | 'generoId'>
+    Pick<
+      typeof usuarioTable.$inferInsert,
+      'nombre' | 'apellidos' | 'telefono' | 'fotoUrl' | 'generoId' | 'fechaNacimiento' | 'esConductor'
+    >
   >,
 ) {
   const [actualizado] = await db
@@ -680,7 +683,10 @@ export async function actualizarVehiculo(
   vehiculoId: number,
   usuarioId: number,
   cambios: Partial<
-    Pick<typeof vehiculoTable.$inferInsert, 'marca' | 'modelo' | 'color' | 'capacidadPasajeros'>
+    Pick<
+      typeof vehiculoTable.$inferInsert,
+      'placa' | 'marca' | 'modelo' | 'color' | 'capacidadPasajeros' | 'activo'
+    >
   >,
 ) {
   const [vehiculo] = await db
