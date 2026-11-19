@@ -957,59 +957,57 @@ export async function cancelarViaje(viajeId: number, conductorId: number, motivo
   });
 }
 
-export async function listarViajesRangoFecha (
-  fechaInicio: Date,
-  fechaFin: Date,
-) => {
-  return db
-    .select({
-      id: viajeTable.id,
+export async function listarViajesRangoFecha(
+    fechaInicio: Date,
+    fechaFin: Date) {
+    return db
+        .select({
+            id: viajeTable.id,
 
-      // Informacion de conductor
-      conductorId: usuarioTable.id,
-      conductorNombre: usuarioTable.nombre,
-      conductorApellidos: usuarioTable.apellidos,
+            // Informacion de conductor
+            conductorId: usuarioTable.id,
+            conductorNombre: usuarioTable.nombre,
+            conductorApellidos: usuarioTable.apellidos,
 
-      // Informacion de vehiculo
-      vehiculoId: vehiculoTable.id,
-      placa: vehiculoTable.placa,
-      marca: vehiculoTable.marca,
-      modelo: vehiculoTable.modelo,
+            // Informacion de vehiculo
+            vehiculoId: vehiculoTable.id,
+            placa: vehiculoTable.placa,
+            marca: vehiculoTable.marca,
+            modelo: vehiculoTable.modelo,
 
-      // Informacion de viaje
-      origenNombre: viajeTable.origenNombre,
-      origenLat: viajeTable.origenLat,
-      origenLng: viajeTable.origenLng,
-      destinoNombre: viajeTable.destinoNombre,
-      destinoLat: viajeTable.destinoLat,
-      destinoLng: viajeTable.destinoLng,
-      rutaPolyline: viajeTable.rutaPolyline,
+            // Informacion de viaje
+            origenNombre: viajeTable.origenNombre,
+            origenLat: viajeTable.origenLat,
+            origenLng: viajeTable.origenLng,
+            destinoNombre: viajeTable.destinoNombre,
+            destinoLat: viajeTable.destinoLat,
+            destinoLng: viajeTable.destinoLng,
+            rutaPolyline: viajeTable.rutaPolyline,
 
-      fechaHoraSalida: viajeTable.fechaHoraSalida,
-      cuposTotales: viajeTable.cuposTotales,
-      cuposDisponibles: viajeTable.cuposDisponibles,
-      costo: viajeTable.costo,
-      fechaInicioReal: viajeTable.fechaInicioReal,
-      fechaFinReal: viajeTable.fechaFinReal,
-    })
-    .from(viajeTable)
-    .innerJoin(
-      usuarioTable,
-      eq(viajeTable.conductorId, usuarioTable.id),
-    )
-    .innerJoin(
-      vehiculoTable,
-      eq(viajeTable.vehiculoId, vehiculoTable.id),
-    )
-    .where(
-      and(
-        gte(viajeTable.fechaHoraSalida, fechaInicio),
-        lte(viajeTable.fechaHoraSalida, fechaFin),
-      ),
-    )
-    .orderBy(viajeTable.fechaHoraSalida);
+            fechaHoraSalida: viajeTable.fechaHoraSalida,
+            cuposTotales: viajeTable.cuposTotales,
+            cuposDisponibles: viajeTable.cuposDisponibles,
+            costo: viajeTable.costo,
+            fechaInicioReal: viajeTable.fechaInicioReal,
+            fechaFinReal: viajeTable.fechaFinReal,
+        })
+        .from(viajeTable)
+        .innerJoin(
+            usuarioTable,
+            eq(viajeTable.conductorId, usuarioTable.id),
+        )
+        .innerJoin(
+            vehiculoTable,
+            eq(viajeTable.vehiculoId, vehiculoTable.id),
+        )
+        .where(
+            and(
+                gte(viajeTable.fechaHoraSalida, fechaInicio),
+                lte(viajeTable.fechaHoraSalida, fechaFin),
+            ),
+        )
+        .orderBy(viajeTable.fechaHoraSalida);
 };
-
 /* -------------------------------------------------------------------------- */
 /*  SOLICITUDES DE VIAJE                                                      */
 /* -------------------------------------------------------------------------- */
