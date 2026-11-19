@@ -605,8 +605,8 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 | POST | `/api/admin/catalogs/:catalogo/values` | Crea un parámetro. |
 | PATCH | `/api/admin/catalogs/:catalogo/values/:valueId` | Cambia el nombre, el estado o los campos propios. |
 | DELETE | `/api/admin/catalogs/:catalogo/values/:valueId` | Borra un parámetro que nadie usa. |
-| GET | `/api/admin/institutions` | Lista de instituciones, con su `acronimo` (`null` si todavía no lo tiene). |
-| POST | `/api/admin/institutions` | Registra una institución (`nombre`, `acronimo`, `dominioCorreo`). |
+| GET | `/api/admin/institutions` | Lista de instituciones, con su `acronimo` (`null` si no tiene). |
+| POST | `/api/admin/institutions` | Registra una institución (`nombre`, `dominioCorreo` y, si se quiere, `acronimo`). |
 | PATCH | `/api/admin/institutions/:id` | Cambia nombre, acrónimo, dominio o estado. |
 | GET | `/api/admin/users` | Usuarios por página (`buscar`, `institucionId`, `pagina`). |
 | GET | `/api/admin/users/:id` | Detalle con vehículos y actividad. |
@@ -627,14 +627,14 @@ El código del portal está en `src/admin/`: un módulo con seis controllers (se
 
 ### Acrónimo de las instituciones
 
-Cada institución guarda un acrónimo (TEC, UCR, UNA), que es el que muestran las consultas y estadísticas. La regla está en `institutions.service.ts`:
+Cada institución puede guardar un acrónimo (TEC, UCR, UNA), que es el que muestran las consultas y estadísticas. La regla está en `institutions.service.ts`:
 
-- Es obligatorio al registrar. Al editar se puede cambiar, pero no dejar vacío.
-- Tiene de 2 a 10 letras o números, sin espacios ni tildes. Se guarda en mayúsculas aunque llegue en minúsculas: "tec" queda como "TEC". Si no cumple, la respuesta es 400, "El acrónimo no es válido. Usa de 2 a 10 letras o números, sin espacios ni tildes."
-- No puede repetirse, tampoco con el de una institución inactiva: la respuesta es 409, "Ya existe una institución con el acrónimo "TEC"."
-- Las instituciones registradas antes de pedirlo lo tienen vacío (`null`) hasta que alguien las edite. Activarlas o desactivarlas no lo pide.
+- Es opcional. Si no se envía al registrar, o llega vacío, la institución queda sin acrónimo (`null`). Al editar, enviarlo vacío se lo quita.
+- Cuando se envía, tiene de 2 a 10 letras o números, sin espacios ni tildes. Se guarda en mayúsculas aunque llegue en minúsculas: "tec" queda como "TEC". Si no cumple, la respuesta es 400, "El acrónimo no es válido. Usa de 2 a 10 letras o números, sin espacios ni tildes."
+- No puede repetirse, tampoco con el de una institución inactiva: la respuesta es 409, "Ya existe una institución con el acrónimo "TEC"." Varias instituciones pueden estar sin acrónimo.
+- Activar o desactivar una institución no cambia su acrónimo.
 
-La columna `acronimo` ya existe en la base de datos, pero `src/database/schemas.ts` todavía no la declara. Mientras tanto, `admin.queries.ts` declara la tabla `institucion` con esa columna (`institucionConAcronimo`) y la usa en las consultas de instituciones del portal. Cuando la columna entre a `schemas.ts`, esa declaración se quita y las consultas vuelven a usar `institucionTable`.
+La columna `acronimo` ya existe en la base de datos, pero `src/database/schemas.ts` todavía no la declara. Mientras tanto, `admin.queries.ts` declara la tabla `institucion` con esa columna (`institucionConAcronimo`) y la usa en las consultas de instituciones del portal. En esa declaración cada columna lleva su nombre escrito (`integer('id')`, `varchar('acronimo')`): Drizzle guarda los nombres de las columnas por nombre de tabla y, sin eso, las consultas del portal responden 500 cuando otra consulta usó antes `institucionTable`. Cuando la columna entre a `schemas.ts`, esa declaración se quita y las consultas vuelven a usar `institucionTable`.
 
 ### Sesión de administrador
 
