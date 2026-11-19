@@ -7,6 +7,8 @@ import {
   contarViajesFinalizados,
   listarUsuariosNuevos,
   puntosMasConcurrentes,
+  listarViajesEnRango,
+  FiltrosConsulta
 } from './consultas.queries.js';
 import {
   PuntosConcurrentesDto,
@@ -129,5 +131,20 @@ export class ConsultasService {
         registeredAt: user.registradoEn,
       })),
     };
+  }
+
+  async listadoViajes(filtros: FiltrosConsulta) {
+    for (const fecha of [filtros.desde, filtros.hasta]) {
+      if (fecha !== undefined && !fechaValida(fecha)) {
+        throw new BadRequestException('Una de las fechas no es valida.');
+      }
+    }
+    if (filtros.desde && filtros.hasta && filtros.desde > filtros.hasta) {
+      throw new BadRequestException(
+        'La fecha inicial no puede ser posterior a la final.',
+      );
+    }
+
+    return await listarViajesEnRango(filtros);
   }
 }

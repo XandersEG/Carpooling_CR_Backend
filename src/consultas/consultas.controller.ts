@@ -22,4 +22,17 @@ export class ConsultasController {
   usuariosNuevos(@Query() filtros: UsuariosNuevosDto) {
     return this.consultas.usuariosNuevos(filtros);
   }
+
+  @Get('viajes-rango-fecha')
+  async listadoViajes(
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+    @Query('institucionId') institucionId?: string,
+  ) {
+    return this.consultas.listadoViajes({
+      desde,
+      hasta,
+      institucionId: institucionId ? parseInt(institucionId, 10) : undefined,
+    });
+  }
 }
