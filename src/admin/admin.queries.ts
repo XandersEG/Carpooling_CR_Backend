@@ -165,11 +165,12 @@ export async function borrarValor(tabla: TablaCatalogo, id: number) {
 
 // la columna acronimo ya existe en la base, pero schemas.ts todavía no la tiene: el portal declara aquí la tabla con ella
 const institucionConAcronimo = pgTable('institucion', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  nombre: varchar({ length: 150 }).notNull(),
-  acronimo: varchar(),
+  // cada columna lleva su nombre escrito: sin él, drizzle las confunde con las de institucionTable y la consulta falla
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  nombre: varchar('nombre', { length: 150 }).notNull(),
+  acronimo: varchar('acronimo'),
   dominioCorreo: varchar('dominio_correo', { length: 150 }).notNull().unique(),
-  activo: boolean().notNull().default(true),
+  activo: boolean('activo').notNull().default(true),
   creadoEn: timestamp('creado_en').notNull().defaultNow(),
   actualizadoEn: timestamp('actualizado_en')
     .notNull()
@@ -210,10 +211,10 @@ export async function buscarInstitucionConAcronimo(acronimo: string) {
   return institucion ?? null;
 }
 
-// registra una institución
+// registra una institución; sin acrónimo, la columna queda en null
 export async function insertarInstitucion(datos: {
   nombre: string;
-  acronimo: string;
+  acronimo: string | null;
   dominioCorreo: string;
 }) {
   const [institucion] = await db
@@ -228,7 +229,7 @@ export async function actualizarInstitucion(
   id: number,
   cambios: {
     nombre?: string;
-    acronimo?: string;
+    acronimo?: string | null;
     dominioCorreo?: string;
     activo?: boolean;
   },

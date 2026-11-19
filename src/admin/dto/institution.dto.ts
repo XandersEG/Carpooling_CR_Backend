@@ -20,11 +20,11 @@ export class CreateInstitutionDto {
   })
   nombre: string;
 
-  // el formato y que no se repita se revisan en el servicio
+  // es opcional; el formato y que no se repita se revisan en el servicio
+  @SiSeEnvia()
   @Transform(recortar)
   @IsString({ message: 'El acrónimo debe ser un texto.' })
-  @IsNotEmpty({ message: 'El acrónimo es obligatorio.' })
-  acronimo: string;
+  acronimo?: string;
 
   @Transform(recortar)
   @IsString({ message: 'El dominio de correo debe ser un texto.' })
@@ -46,10 +46,10 @@ export class UpdateInstitutionDto {
   })
   nombre?: string;
 
+  // si llega vacío, la institución queda sin acrónimo
   @SiSeEnvia()
   @Transform(recortar)
   @IsString({ message: 'El acrónimo debe ser un texto.' })
-  @IsNotEmpty({ message: 'El acrónimo es obligatorio.' })
   acronimo?: string;
 
   @SiSeEnvia()

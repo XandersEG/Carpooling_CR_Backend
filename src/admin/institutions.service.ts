@@ -36,7 +36,7 @@ export class InstitutionsService {
     return listarInstituciones();
   }
 
-  // registra una institución con un acrónimo y un dominio que no estén en uso. autor: kaleb lizano, 2026-11-13
+  // registra una institución; el dominio y el acrónimo (si lo trae) no pueden estar en uso. autor: kaleb lizano, 2026-11-13
   async crear(dto: CreateInstitutionDto) {
     const acronimo = await this.acronimoLibre(dto.acronimo);
     const dominioCorreo = await this.dominioLibre(dto.dominioCorreo);
@@ -68,7 +68,11 @@ export class InstitutionsService {
   }
 
   // devuelve el acrónimo en mayúsculas, o falla si es inválido o ya es de otra institución
-  private async acronimoLibre(texto: string, idPropio?: number) {
+  private async acronimoLibre(texto = '', idPropio?: number) {
+    // el acrónimo es opcional: si viene vacío, la institución queda sin acrónimo
+    if (!texto) {
+      return null;
+    }
     const acronimo = texto.toUpperCase();
     if (!ACRONIMO_VALIDO.test(acronimo)) {
       throw new BadRequestException(
