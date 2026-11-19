@@ -26,6 +26,7 @@ export class ConsultasAdminService {
     const condiciones = and(
       isNotNull(viajeTable.fechaFinReal),
       isNull(viajeTable.motivoCancelacion),
+      eq(institucionTable.activo, true),
       filtros.institucionId === undefined
         ? undefined
         : eq(usuarioTable.institucionId, filtros.institucionId),
@@ -68,6 +69,7 @@ export class ConsultasAdminService {
         })
         .from(viajeTable)
         .innerJoin(usuarioTable, eq(viajeTable.conductorId, usuarioTable.id))
+        .innerJoin(institucionTable, eq(usuarioTable.institucionId, institucionTable.id))
         .where(condiciones),
     ]);
 
@@ -107,6 +109,7 @@ export class ConsultasAdminService {
       + coalesce(${viajesComoPasajero.cantidadPasajero}, 0)`;
     const condiciones = and(
       gt(viajesFinalizados, 0),
+      eq(institucionTable.activo, true),
       filtros.institucionId === undefined
         ? undefined
         : eq(usuarioTable.institucionId, filtros.institucionId),
@@ -153,6 +156,7 @@ export class ConsultasAdminService {
   async montoPromedio(filtros: FiltrosMonto) {
     // Institución del conductor; fechas de salida programada, con ambos días incluidos.
     const condiciones = and(
+      eq(institucionTable.activo, true),
       filtros.institucionId === undefined
         ? undefined
         : eq(usuarioTable.institucionId, filtros.institucionId),
@@ -173,6 +177,7 @@ export class ConsultasAdminService {
       })
       .from(viajeTable)
       .innerJoin(usuarioTable, eq(viajeTable.conductorId, usuarioTable.id))
+      .innerJoin(institucionTable, eq(usuarioTable.institucionId, institucionTable.id))
       .where(condiciones);
 
     const porInstitucion = await db
