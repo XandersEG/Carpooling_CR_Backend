@@ -957,11 +957,11 @@ export async function cancelarViaje(viajeId: number, conductorId: number, motivo
   });
 }
 
-const listarViajesRangoFecha = async (
+export async function listarViajesRangoFecha (
   fechaInicio: Date,
   fechaFin: Date,
 ) => {
-  return await db
+  return db
     .select({
       id: viajeTable.id,
 
